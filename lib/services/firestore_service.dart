@@ -39,11 +39,11 @@ class FireStoreService {
 
 Future<List<MapRoute>> fetchRoutes() async {
   try {
-    final querySnapshot = await _routesCollection.get();
-
+    final querySnapshotFull = await _routesCollection.get();
+    final querySnapshot = querySnapshotFull.docs.where((doc) => doc.id.toString() !="sin_asignar" );
     List<MapRoute> routes = [];
 
-    for (var doc in querySnapshot.docs) {
+    for (var doc in querySnapshot) {
       final data = doc.data() as Map<String, dynamic>;
       final pois = await fetchAllPOIs(doc.id); // await para obtener la lista real
 
@@ -57,7 +57,6 @@ Future<List<MapRoute>> fetchRoutes() async {
         pois: pois,
       ));
     }
-
     return routes;
   } catch (e) {
     throw Exception('Error fetching Routes: $e');
@@ -86,5 +85,7 @@ Future<void> addRoute(MapRoute route) {
   Future<void> deleteRoute(String routeId) {
     return _routesCollection.doc(routeId).delete();
   }
+
+  
 
 }

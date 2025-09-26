@@ -28,7 +28,7 @@ class _TablaRutasState extends State<TablaRutas> {
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16,vertical: 8),
                 child: Column(
                   children: [
                     Row(

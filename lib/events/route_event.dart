@@ -4,6 +4,8 @@ abstract class RouteEvent{}
 
 class LoadRoute extends RouteEvent{}
 
+class LoadUnasignedPOIs extends RouteEvent{}
+
 class AddRoute extends RouteEvent{
   final MapRoute route;
   AddRoute(this.route);
