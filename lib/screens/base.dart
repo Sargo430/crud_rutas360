@@ -63,7 +63,7 @@ class Base extends StatelessWidget {
             items: const [
               SidebarXItem(icon: Icons.home, label: 'Home'),
               SidebarXItem(icon: Icons.route, label: 'Rutas'),
-              SidebarXItem(icon: Icons.location_on, label: 'Users'),
+              SidebarXItem(icon: Icons.location_on, label: 'POIs'),
               SidebarXItem(icon: Icons.category, label: 'Categorías'),
               SidebarXItem(icon: Icons.hiking, label: 'Actividades'),
             ],

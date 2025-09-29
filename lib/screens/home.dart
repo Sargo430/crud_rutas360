@@ -30,7 +30,7 @@ class _HomePageState extends State<HomePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Expanded(
-                          child: Card(
+                          child: Card( //Card de Rutas ------------------------------
                             child: Column(
                               children: [
                                 Padding(
@@ -83,7 +83,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         SizedBox(width: 24),
                         Expanded(
-                          child: Card(
+                          child: Card( //Card de POIs ------------------------------
                             child: Column(
                               children: [
                                 Padding(
@@ -136,7 +136,7 @@ class _HomePageState extends State<HomePage> {
                     Row(
                       children: [
                         Expanded(
-                          child: Card(
+                          child: Card( //Card de Categorías ------------------------------
                             child: Column(
                               children: [
                                 Padding(
@@ -154,7 +154,9 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                       SizedBox(height: 24),
                                       FilledButton(
-                                        onPressed: () {},
+                                        onPressed: () {
+                                          context.go('/categorias/create');
+                                        },
                                         style: FilledButton.styleFrom(
                                           minimumSize: Size(
                                             double.infinity,
@@ -166,7 +168,9 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                       SizedBox(height: 16),
                                       FilledButton(
-                                        onPressed: () {},
+                                        onPressed: () {
+                                          context.go('/categorias');
+                                        },
                                         style: FilledButton.styleFrom(
                                           minimumSize: Size(
                                             double.infinity,

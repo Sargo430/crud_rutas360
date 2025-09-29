@@ -1,7 +1,12 @@
+import 'package:crud_rutas360/blocs/category_bloc.dart';
 import 'package:crud_rutas360/blocs/route_bloc.dart';
+import 'package:crud_rutas360/events/category_event.dart';
 import 'package:crud_rutas360/firebase_options.dart';
 import 'package:crud_rutas360/screens/base.dart';
+import 'package:crud_rutas360/screens/category_form.dart';
+import 'package:crud_rutas360/screens/category_table.dart';
 import 'package:crud_rutas360/screens/create_route.dart';
+import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/screens/home.dart';
 import 'package:crud_rutas360/screens/rutas_table.dart';
 import 'package:crud_rutas360/services/firestore_service.dart';
@@ -15,7 +20,6 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MainApp());
 }
-
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
@@ -49,9 +53,61 @@ class MainApp extends StatelessWidget {
                   routes: <RouteBase>[
                     GoRoute(
                       path: 'create',
-                      builder: (context, state) => const CreateRoute(),
-                      )
+                      builder: (context, state) => BlocProvider(
+                        create: (context) => RouteBloc(FireStoreService()),
+                        child: CreateRoute(
+                          rootNavigatorKey: rootNavigatorKey
+                        ),
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'edit/:id',
+                      builder: (context, state) {
+                        return BlocProvider(
+                          create: (context) => RouteBloc(FireStoreService()),
+                          child: CreateRoute(
+                            rootNavigatorKey: rootNavigatorKey,
+                            route: state.extra is MapRoute
+                              ? state.extra as MapRoute
+                              : null,
+                          ),
+                        );
+                      },
+                    )
                   ],
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: <RouteBase>[
+                GoRoute(
+                  path: '/pois',
+                  builder: (context, state) => const Card(child: Text('POIs')),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: <RouteBase>[
+                GoRoute(
+                  path: '/categorias',
+                  builder: (context, state) => const CategoryTable(),
+                  routes: <RouteBase>[
+                    GoRoute(
+                      path: 'create',
+                      builder: (context, state) {
+                        context.read<CategoryBloc>().add(SelectCategory(category: null));
+                        return const CategoryForm();
+                      },
+                    ),
+                  ]
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: <RouteBase>[
+                GoRoute(
+                  path: '/actividades',
+                  builder: (context, state) => const Card(child: Text('Actividades')),
                 ),
               ],
             ),
@@ -62,6 +118,7 @@ class MainApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => RouteBloc(FireStoreService())),
+        BlocProvider(create: (context) => CategoryBloc(FireStoreService())),
       ],
       child: MaterialApp.router(
         title: 'Rutas360',

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crud_rutas360/models/category_model.dart';
 import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/models/route_model.dart';
+
 
 
 
@@ -86,6 +88,44 @@ Future<void> addRoute(MapRoute route) {
     return _routesCollection.doc(routeId).delete();
   }
 
-  
+  Future<List<PoiCategory>> fetchCategories() async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('categorias')
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return PoiCategory(
+          id: doc.id,
+          nombre: Map<String, dynamic>.from(data['nombre'] ?? {}),
+          backgroundColor: data['background_color']?.toString() ?? '',
+          textColor: data['text_color']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      throw Exception('Error fetching Categories: $e');
+    }
+  }
+
+  Future<void> addCategory(PoiCategory category) {
+    return FirebaseFirestore.instance.collection('categorias').add({
+      'nombre': category.nombre,
+      'backgroundColor': category.backgroundColor,
+      'textColor': category.textColor,
+    });
+  }
+
+  Future<void> updateCategory(PoiCategory category) {
+    return FirebaseFirestore.instance.collection('categorias').doc(category.id).update({
+      'nombre': category.nombre,
+      'backgroundColor': category.backgroundColor,
+      'textColor': category.textColor,
+    });
+  }
+
+  Future<void> deleteCategory(String categoryId) {
+    return FirebaseFirestore.instance.collection('categorias').doc(categoryId).delete();
+  }
 
 }
