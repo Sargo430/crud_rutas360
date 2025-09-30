@@ -2,6 +2,7 @@ import 'package:crud_rutas360/blocs/category_bloc.dart';
 import 'package:crud_rutas360/blocs/route_bloc.dart';
 import 'package:crud_rutas360/events/category_event.dart';
 import 'package:crud_rutas360/firebase_options.dart';
+import 'package:crud_rutas360/models/category_model.dart';
 import 'package:crud_rutas360/screens/base.dart';
 import 'package:crud_rutas360/screens/category_form.dart';
 import 'package:crud_rutas360/screens/category_table.dart';
@@ -99,6 +100,13 @@ class MainApp extends StatelessWidget {
                         return const CategoryForm();
                       },
                     ),
+                    GoRoute(
+                      path: 'edit/:id',
+                      builder: (context, state) {
+                        context.read<CategoryBloc>().add(SelectCategory(category: state.extra as PoiCategory ));
+                        return const CategoryForm();
+                      },
+                    )
                   ]
                 ),
               ],

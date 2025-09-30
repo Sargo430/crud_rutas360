@@ -109,18 +109,18 @@ Future<void> addRoute(MapRoute route) {
   }
 
   Future<void> addCategory(PoiCategory category) {
-    return FirebaseFirestore.instance.collection('categorias').add({
+    return FirebaseFirestore.instance.collection('categorias').doc(category.id).set({
       'nombre': category.nombre,
-      'backgroundColor': category.backgroundColor,
-      'textColor': category.textColor,
+      'background_color': category.backgroundColor,
+      'text_color': category.textColor,
     });
   }
 
   Future<void> updateCategory(PoiCategory category) {
     return FirebaseFirestore.instance.collection('categorias').doc(category.id).update({
       'nombre': category.nombre,
-      'backgroundColor': category.backgroundColor,
-      'textColor': category.textColor,
+      'background_color': category.backgroundColor,
+      'text_color': category.textColor,
     });
   }
 

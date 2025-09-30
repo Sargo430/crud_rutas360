@@ -97,7 +97,7 @@ class CategorySource extends DataTableSource {
                 width: 20,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: getColorFromHex(category.backgroundColor),
+                  color: getColorFromHex(category.textColor),
                   border: Border.all(color: Colors.black26, width: 1),
                 ),
               ),
@@ -129,7 +129,7 @@ class CategorySource extends DataTableSource {
                 icon: const Icon(Icons.edit),
                 onPressed: () {
                   // Navegar a la pantalla de edición con la categoría como argumento
-                  context.go('/categorias/edit', extra: category);
+                  context.go('/categorias/edit/${category.id}', extra: category);
                 },
               ),
               IconButton(
@@ -184,12 +184,11 @@ class CategorySource extends DataTableSource {
     try {
       hexColor = hexColor.replaceAll("#", "");
       if (hexColor.length == 6) {
-        hexColor = "FF$hexColor"; // agrega alpha si falta
+        hexColor = "FF$hexColor"; // add alpha if missing
       }
       if (hexColor.length == 8) {
-        return Color(int.parse("0x$hexColor", radix: 16));
+        return Color(int.parse(hexColor, radix: 16));
       }
-      // fallback for invalid length
       return Colors.transparent;
     } catch (e) {
       return Colors.transparent;
