@@ -1,22 +1,24 @@
-import 'package:crud_rutas360/blocs/category_bloc.dart';
-import 'package:crud_rutas360/events/category_event.dart';
-import 'package:crud_rutas360/models/category_model.dart';
 
-import 'package:crud_rutas360/states/category_state.dart';
+
+import 'package:crud_rutas360/blocs/activity_bloc.dart';
+import 'package:crud_rutas360/events/activity_event.dart';
+import 'package:crud_rutas360/models/activity_model.dart';
+import 'package:crud_rutas360/states/activity_state.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:go_router/go_router.dart';
 
-class CategoryForm extends StatefulWidget {
-  const CategoryForm({super.key});
+class ActivityForm extends StatefulWidget {
+  const ActivityForm({super.key});
 
   @override
-  State<CategoryForm> createState() => _CategoryFormState();
+  State<ActivityForm> createState() => _ActivityFormState();
 }
 
-class _CategoryFormState extends State<CategoryForm> {
-  final _createCategoryFormKey = GlobalKey<FormState>();
+class _ActivityFormState extends State<ActivityForm> {
+  final _createActivityFormKey = GlobalKey<FormState>();
 
   final TextEditingController _nameEsController = TextEditingController();
   final TextEditingController _nameEnController = TextEditingController();
@@ -27,7 +29,7 @@ class _CategoryFormState extends State<CategoryForm> {
   Color textColor = Colors.black;
   Color backgroundColor = Colors.grey;
   bool _initialized = false;
-  PoiCategory? _lastCategory;
+  Activity? _lastActivity;
 
   void changeTextColor(Color color) {
     setState(() => textColor = color);
@@ -39,55 +41,31 @@ class _CategoryFormState extends State<CategoryForm> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<CategoryBloc, CategoryState>(
+    return BlocConsumer<ActivityBloc, ActivityState>(
       listener: (context, state) {
-        if (state is CategoryOperationSuccess) {
+        if (state is ActivityOperationSuccess) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(state.message)));
         }
       },
       builder: (context, state) {
-        PoiCategory? category;
-        if (state is CategoryFormState) {
-          category = state.category;
-          if (category != null && (!_initialized || category != _lastCategory)) {
-            _nameEsController.text = category.nombre['es'] ?? '';
-            _nameEnController.text = category.nombre['en'] ?? '';
-            _namePtController.text = category.nombre['pt'] ?? '';
-            textColor = getColorFromHex(category.textColor);
-            backgroundColor = getColorFromHex(category.backgroundColor);
-            _textHexColorController.text = category.textColor.replaceAll('#', '');
-            _backgroundHexColorController.text = category.backgroundColor.replaceAll('#', '');
+        Activity? activity;
+        if (state is ActivityFormState) {
+          activity = state.activity;
+          if (activity != null && (!_initialized || activity != _lastActivity)) {
+            _nameEsController.text = activity.nombre['es'] ?? '';
+            _nameEnController.text = activity.nombre['en'] ?? '';
+            _namePtController.text = activity.nombre['pt'] ?? '';
+            textColor = getColorFromHex(activity.textColor);
+            backgroundColor = getColorFromHex(activity.backgroundColor);
+            _textHexColorController.text = activity.textColor.replaceAll('#', '');
+            _backgroundHexColorController.text = activity.backgroundColor.replaceAll('#', '');
             _initialized = true;
-            _lastCategory = category;
+            _lastActivity = activity;
           }
         }
-        @override
-        void didChangeDependencies() {
-          super.didChangeDependencies();
-          final state = context.read<CategoryBloc>().state;
-          PoiCategory? category;
-          if (state is CategoryFormState) {
-            category = state.category;
-            if (category != null &&
-                (!_initialized || category != _lastCategory)) {
-              _nameEsController.text = category.nombre['es'] ?? '';
-              _nameEnController.text = category.nombre['en'] ?? '';
-              _namePtController.text = category.nombre['pt'] ?? '';
-              textColor = getColorFromHex(category.textColor);
-              backgroundColor = getColorFromHex(category.backgroundColor);
-              _textHexColorController.text = category.textColor.replaceAll(
-                '#',
-                '',
-              );
-              _backgroundHexColorController.text = category.backgroundColor
-                  .replaceAll('#', '');
-              _initialized = true;
-              _lastCategory = category;
-            }
-          }
-        }
+  
 
         return SingleChildScrollView(
           child: Padding(
@@ -102,7 +80,7 @@ class _CategoryFormState extends State<CategoryForm> {
                       child: Padding(
                         padding: const EdgeInsets.only(right: 16.0),
                         child: Form(
-                          key: _createCategoryFormKey,
+                          key: _createActivityFormKey,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -222,9 +200,7 @@ class _CategoryFormState extends State<CategoryForm> {
                           Expanded(
                             child: FilledButton(
                               onPressed: () {
-                                context.read<CategoryBloc>().add(
-                                  LoadCategories(),
-                                );
+                                context.read<ActivityBloc>().add(LoadActivities());
                                 context.pop();
                               },
                               style: ElevatedButton.styleFrom(
@@ -240,14 +216,14 @@ class _CategoryFormState extends State<CategoryForm> {
                           Expanded(
                             child: FilledButton(
                               onPressed: () {
-                                if (_createCategoryFormKey.currentState!
+                                if (_createActivityFormKey.currentState!
                                     .validate()) {
-                                  if (category != null) {
-                                    // Si category no es nulo, estamos editando una categoría existente
-                                    _fnAddCategory(category);
+                                  if (activity != null) {
+                                    // Si activity no es nulo, estamos editando una actividad existente
+                                    _fnAddActivity(activity);
                                   } else {
-                                    // Si category es nulo, estamos creando una nueva categoría
-                                    _fnAddCategory(null);
+                                    // Si activity es nulo, estamos creando una nueva actividad
+                                    _fnAddActivity(null);
                                   }
                                   context.pop();
                                 }
@@ -256,7 +232,7 @@ class _CategoryFormState extends State<CategoryForm> {
                                 backgroundColor: Color(0xFF4D67AE),
                               ),
                               child: Text(
-                                category == null ? 'Crear' : 'Actualizar',
+                                activity == null ? 'Crear' : 'Actualizar',
                               ),
                             ),
                           ),
@@ -274,7 +250,7 @@ class _CategoryFormState extends State<CategoryForm> {
     );
   }
 
-  void _fnAddCategory(PoiCategory? category) {
+  void _fnAddActivity(Activity? activity) {
     final id = _nameEsController.text.trim().toLowerCase();
     final nombre = {
       'es': _nameEsController.text.trim(),
@@ -284,16 +260,16 @@ class _CategoryFormState extends State<CategoryForm> {
     final colorDelTexto = "#${_textHexColorController.text.trim()}";
     final colorDeFondo = "#${_backgroundHexColorController.text.trim()}";
 
-    PoiCategory newCategory = PoiCategory(
+    Activity newActivity = Activity(
       id: id,
       nombre: nombre,
       textColor: colorDelTexto,
       backgroundColor: colorDeFondo,
     );
-    if (category == null) {
-      context.read<CategoryBloc>().add(AddCategory(newCategory));
+    if (activity == null) {
+      context.read<ActivityBloc>().add(AddActivity(newActivity));
     } else {
-      context.read<CategoryBloc>().add(UpdateCategory(newCategory));
+      context.read<ActivityBloc>().add(UpdateActivity(newActivity));
     }
   }
 

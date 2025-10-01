@@ -199,7 +199,7 @@ class _HomePageState extends State<HomePage> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "Categorías",
+                                        "Actividades",
                                         style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
@@ -207,7 +207,9 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                       SizedBox(height: 24),
                                       FilledButton(
-                                        onPressed: () {},
+                                        onPressed: () {
+                                          context.go('/actividades/create');
+                                        },
                                         style: FilledButton.styleFrom(
                                           minimumSize: Size(
                                             double.infinity,
@@ -219,7 +221,9 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                       SizedBox(height: 16),
                                       FilledButton(
-                                        onPressed: () {},
+                                        onPressed: () {
+                                          context.go('/actividades');
+                                        },
                                         style: FilledButton.styleFrom(
                                           minimumSize: Size(
                                             double.infinity,

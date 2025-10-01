@@ -1,8 +1,13 @@
+import 'package:crud_rutas360/blocs/activity_bloc.dart';
 import 'package:crud_rutas360/blocs/category_bloc.dart';
 import 'package:crud_rutas360/blocs/route_bloc.dart';
+import 'package:crud_rutas360/events/activity_event.dart';
 import 'package:crud_rutas360/events/category_event.dart';
 import 'package:crud_rutas360/firebase_options.dart';
+import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/models/category_model.dart';
+import 'package:crud_rutas360/screens/activity_form.dart';
+import 'package:crud_rutas360/screens/activity_table.dart';
 import 'package:crud_rutas360/screens/base.dart';
 import 'package:crud_rutas360/screens/category_form.dart';
 import 'package:crud_rutas360/screens/category_table.dart';
@@ -115,7 +120,23 @@ class MainApp extends StatelessWidget {
               routes: <RouteBase>[
                 GoRoute(
                   path: '/actividades',
-                  builder: (context, state) => const Card(child: Text('Actividades')),
+                  builder: (context, state) => const ActivityTable(),
+                  routes: <RouteBase>[
+                    GoRoute(
+                      path: 'create',
+                      builder: (context, state) {
+                        context.read<ActivityBloc>().add(SelectActivity(activity: null));
+                        return const ActivityForm();
+                      },
+                    ),
+                    GoRoute(
+                      path: 'edit/:id',
+                      builder: (context, state) {
+                        context.read<ActivityBloc>().add(SelectActivity(activity: state.extra as Activity));
+                        return const ActivityForm();
+                      },
+                    )
+                  ]
                 ),
               ],
             ),
@@ -127,6 +148,7 @@ class MainApp extends StatelessWidget {
       providers: [
         BlocProvider(create: (context) => RouteBloc(FireStoreService())),
         BlocProvider(create: (context) => CategoryBloc(FireStoreService())),
+        BlocProvider(create: (context) => ActivityBloc(FireStoreService())),
       ],
       child: MaterialApp.router(
         title: 'Rutas360',
