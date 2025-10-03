@@ -85,7 +85,7 @@ class _ActivityFormState extends State<ActivityForm> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Crear Categoría',
+                                'Crear Actividad',
                                 style: TextStyle(
                                   fontSize: 24,
                                   color: Colors.black,
@@ -95,12 +95,12 @@ class _ActivityFormState extends State<ActivityForm> {
                               TextFormField(
                                 controller: _nameEsController,
                                 decoration: const InputDecoration(
-                                  labelText: 'Nombre de la categoría',
+                                  labelText: 'Nombre de la actividad',
                                   border: OutlineInputBorder(),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'Por favor ingrese el nombre de la categoría';
+                                    return 'Por favor ingrese el nombre de la actividad';
                                   }
                                   return null;
                                 },
@@ -134,7 +134,7 @@ class _ActivityFormState extends State<ActivityForm> {
                           backgroundColor: backgroundColor,
                           label: Text(
                             _nameEsController.text.isEmpty
-                                ? 'Nombre de la categoría'
+                                ? 'Nombre de la actividad'
                                 : _nameEsController.text,
                             style: TextStyle(color: textColor, fontSize: 16),
                           ),

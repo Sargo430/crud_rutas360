@@ -91,31 +91,34 @@ class PoiSource extends DataTableSource {
           alignment: Alignment.centerLeft,
           child: Text(
             poi.nombre,
-            maxLines: 3,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
         )),
         DataCell(Container(
           alignment: Alignment.centerLeft,
+          width: 175,
           child: Text(
             (poi.descripcion["es"] ?? '').toString(),
-            maxLines: 3,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
         )),
         DataCell(Container(
           alignment: Alignment.centerLeft,
+          width: 175,
           child: Text(
             (poi.descripcion["en"] ?? '').toString(),
-            maxLines: 3,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
         )),
         DataCell(Container(
           alignment: Alignment.centerLeft,
+          width: 175,
           child: Text(
             (poi.descripcion["pt"] ?? '').toString(),
-            maxLines: 3,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
         )),
@@ -123,7 +126,7 @@ class PoiSource extends DataTableSource {
           alignment: Alignment.centerLeft,
           child: Text(
             poi.latitud.toString(),
-            maxLines: 3,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
         )),
@@ -131,7 +134,7 @@ class PoiSource extends DataTableSource {
           alignment: Alignment.centerLeft,
           child: Text(
             poi.longitud.toString(),
-            maxLines: 3,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
         )),
@@ -142,7 +145,7 @@ class PoiSource extends DataTableSource {
                 .map((e) => (e.nombre["es"] ?? '').toString())
                 .where((s) => s.isNotEmpty)
                 .join(', '),
-            maxLines: 3,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
         )),
@@ -153,7 +156,7 @@ class PoiSource extends DataTableSource {
                 .map((e) => (e.nombre["es"] ?? '').toString())
                 .where((s) => s.isNotEmpty)
                 .join(', '),
-            maxLines: 3,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
           ),
         )),
@@ -223,7 +226,7 @@ class PoiDataTable extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
       child: PaginatedDataTable(
-        columnSpacing: 8,
+        columnSpacing: 10,
         rowsPerPage: 10,
         dataRowMinHeight: 50,
         dataRowMaxHeight: 100,

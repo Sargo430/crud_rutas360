@@ -1,3 +1,5 @@
+import 'package:crud_rutas360/models/activity_model.dart';
+import 'package:crud_rutas360/models/category_model.dart';
 import 'package:crud_rutas360/models/poi_model.dart';
 
 abstract class PoiState {}
@@ -25,9 +27,15 @@ class PoiError extends PoiState {
 
 class PoiFormState extends PoiState {
   final POI? poi;
-  PoiFormState({this.poi});
+  final List<PoiCategory> categories;
+  final List<Activity> activities;
+  PoiFormState({this.poi, required this.categories, required this.activities});
 
-  PoiFormState copyWith({POI? poi}) {
-    return PoiFormState(poi: poi ?? this.poi);
+  PoiFormState copyWith({POI? poi, List<PoiCategory>? categories, List<Activity>? activities}) {
+    return PoiFormState(
+      poi: poi ?? this.poi,
+      categories: categories ?? this.categories,
+      activities: activities ?? this.activities,
+    );
   }
 }

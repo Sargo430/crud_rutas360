@@ -1,4 +1,6 @@
 import 'package:crud_rutas360/events/poi_events.dart';
+import 'package:crud_rutas360/models/activity_model.dart';
+import 'package:crud_rutas360/models/category_model.dart';
 import 'package:crud_rutas360/states/poi_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:crud_rutas360/services/firestore_service.dart';
@@ -21,7 +23,7 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
     on<AddPOI>((event, emit) async {
       emit(PoiLoading());
       try {
-        await fireStoreService.addPOI(event.poi, event.routeId);
+        await fireStoreService.addPOI(event.poi, event.poi.routeId ?? '');
         emit(PoiOperationSuccess("POI añadida con éxito"));
         add(LoadPOIs());
       } catch (e) {
@@ -32,7 +34,7 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
     on<UpdatePOI>((event, emit) async {
       emit(PoiLoading());
       try {
-        await fireStoreService.updatePOI(event.poi, event.routeId);
+        await fireStoreService.updatePOI(event.poi, event.poi.routeId ?? '');
         emit(PoiOperationSuccess("POI actualizada con éxito"));
         add(LoadPOIs());
       } catch (e) {
@@ -51,8 +53,10 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
       }
     },
     );
-    on<SelectPOI>((event, emit) {
-      emit(PoiFormState(poi: event.poi));
+    on<SelectPOI>((event, emit) async {
+      List<PoiCategory> categories = await fireStoreService.fetchAllCategories();
+      List<Activity> activities = await fireStoreService.fetchAllActivities();
+  emit(PoiFormState(poi: event.poi, categories: categories, activities: activities));
     });
 
   }

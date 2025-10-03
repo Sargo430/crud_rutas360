@@ -7,14 +7,12 @@ abstract class POIEvent {}
 class LoadPOIs extends POIEvent {}
 
 class AddPOI extends POIEvent {
-  final String routeId;
   final POI poi;
-  AddPOI(this.routeId, this.poi);
+  AddPOI(this.poi);
 }
 class UpdatePOI extends POIEvent {
-  final String routeId;
   final POI poi;
-  UpdatePOI(this.routeId, this.poi);
+  UpdatePOI(this.poi);
 }
 class DeletePOI extends POIEvent {
   final String routeId;
@@ -28,7 +26,7 @@ class POIError extends POIEvent {
   POIError(this.message);
 }
 class SelectPOI extends POIEvent {
-  final String routeId;
   final POI? poi;
-  SelectPOI({required this.routeId, this.poi});
+  SelectPOI({this.poi});
 }
+

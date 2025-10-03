@@ -4,9 +4,11 @@ import 'package:crud_rutas360/blocs/poi_bloc.dart';
 import 'package:crud_rutas360/blocs/route_bloc.dart';
 import 'package:crud_rutas360/events/activity_event.dart';
 import 'package:crud_rutas360/events/category_event.dart';
+import 'package:crud_rutas360/events/poi_events.dart';
 import 'package:crud_rutas360/firebase_options.dart';
 import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/models/category_model.dart';
+import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/screens/activity_form.dart';
 import 'package:crud_rutas360/screens/activity_table.dart';
 import 'package:crud_rutas360/screens/base.dart';
@@ -15,6 +17,7 @@ import 'package:crud_rutas360/screens/category_table.dart';
 import 'package:crud_rutas360/screens/create_route.dart';
 import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/screens/home.dart';
+import 'package:crud_rutas360/screens/poi_form.dart';
 import 'package:crud_rutas360/screens/poi_table.dart';
 import 'package:crud_rutas360/screens/rutas_table.dart';
 import 'package:crud_rutas360/services/firestore_service.dart';
@@ -91,6 +94,22 @@ class MainApp extends StatelessWidget {
                 GoRoute(
                   path: '/pois',
                   builder: (context, state) => const PoiTable(),
+                  routes: <RouteBase>[
+                    GoRoute(
+                      path: 'create',
+                      builder: (context, state) {
+                        context.read<PoiBloc>().add(SelectPOI(poi: null));
+                        return const PoiForm();
+                      },
+                    ),
+                    GoRoute(
+                      path: 'edit/:id',
+                      builder: (context, state) {
+                        context.read<PoiBloc>().add(SelectPOI(poi: state.extra as POI));
+                        return const PoiForm();
+                      },
+                    )
+                  ]
                 ),
               ],
             ),
