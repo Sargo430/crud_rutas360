@@ -1,5 +1,6 @@
 import 'package:crud_rutas360/blocs/activity_bloc.dart';
 import 'package:crud_rutas360/blocs/category_bloc.dart';
+import 'package:crud_rutas360/blocs/poi_bloc.dart';
 import 'package:crud_rutas360/blocs/route_bloc.dart';
 import 'package:crud_rutas360/events/activity_event.dart';
 import 'package:crud_rutas360/events/category_event.dart';
@@ -14,6 +15,7 @@ import 'package:crud_rutas360/screens/category_table.dart';
 import 'package:crud_rutas360/screens/create_route.dart';
 import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/screens/home.dart';
+import 'package:crud_rutas360/screens/poi_table.dart';
 import 'package:crud_rutas360/screens/rutas_table.dart';
 import 'package:crud_rutas360/services/firestore_service.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -88,7 +90,7 @@ class MainApp extends StatelessWidget {
               routes: <RouteBase>[
                 GoRoute(
                   path: '/pois',
-                  builder: (context, state) => const Card(child: Text('POIs')),
+                  builder: (context, state) => const PoiTable(),
                 ),
               ],
             ),
@@ -142,13 +144,14 @@ class MainApp extends StatelessWidget {
             ),
           ],
         ),
-      ],
+      ],  
     );
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => RouteBloc(FireStoreService())),
         BlocProvider(create: (context) => CategoryBloc(FireStoreService())),
         BlocProvider(create: (context) => ActivityBloc(FireStoreService())),
+        BlocProvider(create: (context) => PoiBloc(FireStoreService())),
       ],
       child: MaterialApp.router(
         title: 'Rutas360',

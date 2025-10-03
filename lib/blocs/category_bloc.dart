@@ -11,7 +11,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     on<LoadCategories>((event, emit) async {
       emit(CategoryLoading());
       try {
-        final categories = await fireStoreService.fetchCategories();
+        final categories = await fireStoreService.fetchAllCategories();
         emit(CategoryLoaded(categories));
       } catch (e) {
         emit(CategoryError(e.toString()));

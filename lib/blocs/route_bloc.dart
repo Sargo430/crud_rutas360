@@ -53,7 +53,7 @@ class RouteBloc extends Bloc<RouteEvent, RouteState> {
     on<LoadUnasignedPOIs>((event,emit) async{
       emit(RouteLoading());
       try{
-        final pois = await fireStoreService.fetchAllPOIs("sin_asignar");
+        final pois = await fireStoreService.fetchRoutesPOIs("sin_asignar");
         emit(RouteCreating(pois));
       }catch (e){
         emit(RouteError(e.toString()));

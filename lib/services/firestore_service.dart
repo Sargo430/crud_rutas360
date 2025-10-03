@@ -8,31 +8,129 @@ class FireStoreService {
   final CollectionReference _routesCollection = FirebaseFirestore.instance
       .collection('ruta');
 
-  Future<List<POI>> fetchAllPOIs(String routeId) async {
+  Future<List<POI>> fetchAllPOIs() async {
+    try {
+      final routeQuerySnapshot = await FirebaseFirestore.instance
+          .collection('ruta')
+          .get();
+      List<POI> pois = [];
+      for (var routeDoc in routeQuerySnapshot.docs) {
+        final poiCollection = await _routesCollection
+            .doc(routeDoc.id)
+            .collection('poi')
+            .get();
+        for (var doc in poiCollection.docs) {
+          final data = doc.data();
+          final categorias = await fetchCategories(
+          List<String>.from((data['categoria'] ?? ['vacio'])),
+        );
+        final actividades = await fetchActivities(
+          List<String>.from((data['actividades'] ?? ['vacio'])),
+        );
+          pois.add(
+            POI(
+              id: doc.id,
+              routeId: routeDoc.id,
+              routeName: routeDoc.data()['nombre']?.toString() ?? '',
+              nombre: data['nombre']?.toString() ?? '',
+              descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
+              imagen: data['imagen']?.toString() ?? '',
+              latitud: (data['latitud'] ?? 0).toDouble(),
+              longitud: (data['longitud'] ?? 0).toDouble(),
+              categorias: categorias,
+              actividades: actividades,
+              vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
+            ),
+          );
+        }
+      }
+      return pois;
+    } catch (e) {
+      throw Exception('Error fetching POIs: $e');
+    }
+  }
+
+  Future<List<POI>> fetchRoutesPOIs(String routeId) async {
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('ruta')
           .doc(routeId)
           .collection('poi')
           .get();
-
-      return querySnapshot.docs.map((doc) {
+      List<POI> pois = [];
+      for (var doc in querySnapshot.docs) {
         final data = doc.data();
-        return POI(
-          id: doc.id,
-          nombre: data['nombre']?.toString() ?? '',
-          descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
-          imagen: data['imagen']?.toString() ?? '',
-          latitud: (data['latitud'] ?? 0).toDouble(),
-          longitud: (data['longitud'] ?? 0).toDouble(),
-          categorias: List<String>.from(data['categoria'] ?? []),
-          actividades: List<String>.from(data['actividades'] ?? []),
-          vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
+
+        final categorias = await fetchCategories(
+          List<String>.from((data['categoria'] ?? ['vacio'])),
         );
-      }).toList();
+        final actividades = await fetchActivities(
+          List<String>.from((data['actividades'] ?? ['vacio'])),
+        );
+        pois.add(
+          POI(
+            id: doc.id,
+            nombre: data['nombre']?.toString() ?? '',
+            descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
+            imagen: data['imagen']?.toString() ?? '',
+            latitud: (data['latitud'] ?? 0).toDouble(),
+            longitud: (data['longitud'] ?? 0).toDouble(),
+            categorias: categorias,
+            actividades: actividades,
+            vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
+          ),
+        );
+      }
+      return pois;
     } catch (e) {
       throw Exception('Error fetching POIs: $e');
     }
+  }
+
+  Future<void> addPOI(POI poi, String routeId) {
+    return FirebaseFirestore.instance
+        .collection('ruta')
+        .doc(routeId)
+        .collection('poi')
+        .doc(poi.id)
+        .set({
+          'nombre': poi.nombre,
+          'descripcion': poi.descripcion,
+          'imagen': poi.imagen,
+          'latitud': poi.latitud,
+          'longitud': poi.longitud,
+          'categoria': poi.categorias.map((cat) => cat.id).toList(),
+          'actividades': poi.actividades.map((act) => act.id).toList(),
+          'vistas360': poi.vistas360,
+        });
+  }
+
+  Future<void> updatePOI(POI poi, String routeId) {
+    return FirebaseFirestore.instance
+        .collection('ruta')
+        .doc(routeId)
+        .collection('poi')
+        .doc(poi.id)
+        .update({
+          'nombre': poi.nombre,
+          'routeId': poi.routeId,
+          'descripcion': poi.descripcion,
+          'imagen': poi.imagen,
+          'latitud': poi.latitud,
+          'longitud': poi.longitud,
+          'categoria': poi.categorias.map((cat) => cat.id).toList(),
+          'actividades': poi.actividades.map((act) => act.id).toList(),
+          'vistas360': poi.vistas360,
+        });
+  }
+
+  Future<void> deletePOI(String poiId, String routeId) {
+    return FirebaseFirestore.instance
+        .collection('ruta')
+        .doc(routeId)
+        .collection('poi')
+        .doc(poiId)
+        .delete();
   }
 
   Future<List<MapRoute>> fetchRoutes() async {
@@ -45,7 +143,7 @@ class FireStoreService {
 
       for (var doc in querySnapshot) {
         final data = doc.data() as Map<String, dynamic>;
-        final pois = await fetchAllPOIs(
+        final pois = await fetchRoutesPOIs(
           doc.id,
         ); // await para obtener la lista real
 
@@ -91,7 +189,7 @@ class FireStoreService {
     return _routesCollection.doc(routeId).delete();
   }
 
-  Future<List<PoiCategory>> fetchCategories() async {
+  Future<List<PoiCategory>> fetchAllCategories() async {
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('categorias')
@@ -139,7 +237,29 @@ class FireStoreService {
         .doc(categoryId)
         .delete();
   }
-  Future<List<Activity>> fetchActivities() async {
+
+  Future<List<PoiCategory>> fetchCategories(List<String> list) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('categorias')
+          .where(FieldPath.documentId, whereIn: list)
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return PoiCategory(
+          id: doc.id,
+          nombre: Map<String, dynamic>.from(data['nombre'] ?? {}),
+          backgroundColor: data['background_color']?.toString() ?? '',
+          textColor: data['text_color']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      throw Exception('Error fetching Categories: $e');
+    }
+  }
+
+  Future<List<Activity>> fetchAllActivities() async {
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('actividades')
@@ -187,5 +307,25 @@ class FireStoreService {
         .doc(activityId)
         .delete();
   }
-}
 
+  Future<List<Activity>> fetchActivities(List<String> list) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('actividades')
+          .where(FieldPath.documentId, whereIn: list)
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return Activity(
+          id: doc.id,
+          nombre: Map<String, dynamic>.from(data['nombre'] ?? {}),
+          backgroundColor: data['background_color']?.toString() ?? '',
+          textColor: data['text_color']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (e) {
+      throw Exception('Error fetching Activities: $e');
+    }
+  }
+}

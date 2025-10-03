@@ -12,7 +12,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
     on<LoadActivities>((event, emit) async {
       emit(ActivityLoading());
       try {
-        final activities = await fireStoreService.fetchActivities();
+        final activities = await fireStoreService.fetchAllActivities();
         emit(ActivityLoaded(activities));
       } catch (e) {
         emit(ActivityError(e.toString()));
