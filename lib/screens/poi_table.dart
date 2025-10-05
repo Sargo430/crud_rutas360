@@ -197,7 +197,7 @@ class PoiSource extends DataTableSource {
       builder: (context) => AlertDialog(
         title: const Text('Confirmar eliminación'),
         content: const Text(
-          '¿Estás seguro de que deseas eliminar esta categoría?',
+          '¿Estás seguro de que deseas eliminar este punto de interés?',
         ),
         actions: [
           TextButton(
@@ -206,7 +206,7 @@ class PoiSource extends DataTableSource {
           ),
           TextButton(
             onPressed: () {
-              BlocProvider.of<PoiBloc>(context).add(DeletePOI(id, route));
+              BlocProvider.of<PoiBloc>(context).add(DeletePOI(route, id));
               Navigator.of(context).pop();
             },
             child: const Text('Eliminar', style: TextStyle(color: Colors.red)),

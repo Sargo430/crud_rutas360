@@ -1,6 +1,7 @@
 import 'package:crud_rutas360/events/poi_events.dart';
 import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/models/category_model.dart';
+import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/states/poi_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:crud_rutas360/services/firestore_service.dart';
@@ -54,9 +55,15 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
     },
     );
     on<SelectPOI>((event, emit) async {
-      List<PoiCategory> categories = await fireStoreService.fetchAllCategories();
-      List<Activity> activities = await fireStoreService.fetchAllActivities();
-  emit(PoiFormState(poi: event.poi, categories: categories, activities: activities));
+  final categories = await fireStoreService.fetchAllCategories();
+  final activities = await fireStoreService.fetchAllActivities();
+  final routes = await fireStoreService.fetchAllRoutes();
+      emit(PoiFormState(
+        poi: event.poi,
+        routes: routes,
+        categories: categories,
+        activities: activities,
+      ));
     });
 
   }

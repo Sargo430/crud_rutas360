@@ -1,8 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sidebarx/sidebarx.dart';
-
-
 
 class Base extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -10,19 +9,36 @@ class Base extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sidebarController = SidebarXController(selectedIndex: navigationShell.currentIndex, extended: true);
+    final sidebarController = SidebarXController(
+      selectedIndex: navigationShell.currentIndex,
+      extended: true,
+    );
     sidebarController.addListener(() {
       if (sidebarController.selectedIndex != navigationShell.currentIndex) {
         navigationShell.goBranch(sidebarController.selectedIndex);
       }
     });
     return Scaffold(
-      appBar: AppBar( 
-        title: const Text('CRUD Rutas 360',
-         style: TextStyle(color: Colors.white)), 
-         backgroundColor: const Color(0xFF4D67AE), 
+      appBar: AppBar(
+          
+        title: const Text(
+          'CRUD Rutas 360',
+          style: TextStyle(color: Colors.white),
         ),
-      body:Row(
+        backgroundColor: const Color(0xFF4D67AE),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                context.go('/');
+              }
+            },
+          ),
+        ],
+      ),
+      body: Row(
         children: [
           SidebarX(
             controller: sidebarController,
@@ -42,7 +58,9 @@ class Base extends StatelessWidget {
               selectedItemDecoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: Color(0xFF4D67AE).withValues(alpha: 0.3), width: 1),
+                  color: Color(0xFF4D67AE).withValues(alpha: 0.3),
+                  width: 1,
+                ),
                 color: Color(0xFF4D67AE).withValues(alpha: 0.1),
               ),
               iconTheme: IconThemeData(
@@ -56,9 +74,7 @@ class Base extends StatelessWidget {
             ),
             extendedTheme: const SidebarXTheme(
               width: 200,
-              decoration: BoxDecoration(
-                color: Color(0xF1F1F1F1),
-              ),
+              decoration: BoxDecoration(color: Color(0xF1F1F1F1)),
             ),
             items: const [
               SidebarXItem(icon: Icons.home, label: 'Home'),
@@ -68,13 +84,10 @@ class Base extends StatelessWidget {
               SidebarXItem(icon: Icons.hiking, label: 'Actividades'),
             ],
           ),
-          
-          Expanded(
-            child: navigationShell,
 
-            ),
+          Expanded(child: navigationShell),
         ],
-      )
+      ),
     );
   }
 }

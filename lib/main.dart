@@ -17,10 +17,12 @@ import 'package:crud_rutas360/screens/category_table.dart';
 import 'package:crud_rutas360/screens/create_route.dart';
 import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/screens/home.dart';
+import 'package:crud_rutas360/screens/login_page.dart';
 import 'package:crud_rutas360/screens/poi_form.dart';
 import 'package:crud_rutas360/screens/poi_table.dart';
 import 'package:crud_rutas360/screens/rutas_table.dart';
 import 'package:crud_rutas360/services/firestore_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -41,8 +43,20 @@ class MainApp extends StatelessWidget {
     final sectionNavigatorKey = GlobalKey<NavigatorState>();
     final GoRouter router = GoRouter(
       navigatorKey: rootNavigatorKey,
-      routes: <RouteBase>[
+      routes: 
+      <RouteBase>[
+        GoRoute(
+          path: '/',
+          builder: (context, state) => const LoginPage(),
+        ),
         StatefulShellRoute.indexedStack(
+          redirect: (context, state) {
+            final user = FirebaseAuth.instance.currentUser;
+            if (user == null) {
+              return '/';
+            }
+            return null;
+          },
           builder: (context, state, navigationShell) {
             return Base(navigationShell: navigationShell);
           },
@@ -51,7 +65,7 @@ class MainApp extends StatelessWidget {
               navigatorKey: sectionNavigatorKey,
               routes: [
                 GoRoute(
-                  path: '/',
+                  path: '/home',
                   builder: (context, state) => const HomePage(),
                 ),
               ],
@@ -173,6 +187,7 @@ class MainApp extends StatelessWidget {
         BlocProvider(create: (context) => PoiBloc(FireStoreService())),
       ],
       child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
         title: 'Rutas360',
         theme: ThemeData(primarySwatch: Colors.blue),
         routerConfig: router,

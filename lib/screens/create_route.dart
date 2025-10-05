@@ -264,7 +264,7 @@ class _CreateRouteState extends State<CreateRoute> {
                             }
                             final allPOIs = allPOIsMap.values.toList();
 
-                            // Pre-select route POIs if editing
+                            
                             if (routePOIs.isNotEmpty) {
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 try {

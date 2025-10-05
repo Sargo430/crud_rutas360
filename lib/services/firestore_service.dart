@@ -92,8 +92,7 @@ class FireStoreService {
         .collection('ruta')
         .doc(routeId)
         .collection('poi')
-        .doc(poi.id)
-        .set({
+        .add({
           'nombre': poi.nombre,
           'descripcion': poi.descripcion,
           'imagen': poi.imagen,
@@ -125,6 +124,7 @@ class FireStoreService {
   }
 
   Future<void> deletePOI(String poiId, String routeId) {
+   
     return FirebaseFirestore.instance
         .collection('ruta')
         .doc(routeId)
@@ -328,4 +328,31 @@ class FireStoreService {
       throw Exception('Error fetching Activities: $e');
     }
   }
+
+  Future<List<MapRoute>> fetchAllRoutes() async {
+    try {
+      final querySnapshot = await _routesCollection.get();
+      List<MapRoute> routes = [];
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+
+        routes.add(
+          MapRoute(
+            id: doc.id,
+            initialLatitude: (data['latitud_inicio'] ?? 0).toDouble(),
+            initialLongitude: (data['longitud_inicio'] ?? 0).toDouble(),
+            finalLatitude: (data['latitud_fin'] ?? 0).toDouble(),
+            finalLongitude: (data['longitud_fin'] ?? 0).toDouble(),
+            name: data['nombre']?.toString() ?? '',
+            pois: [],
+          ),
+        );
+      }
+      return routes;
+    } catch (e) {
+      throw Exception('Error fetching Routes: $e');
+    }
+  }
+
+  
 }

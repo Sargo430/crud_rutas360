@@ -1,7 +1,7 @@
 import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/models/category_model.dart';
 
-class POI  {
+class POI {
   final String id;
   final String? routeId;
   final String? routeName;
@@ -14,7 +14,6 @@ class POI  {
   final List<Activity> actividades;
   final Map<String, dynamic> vistas360;
 
-
   POI({
     required this.id,
     this.routeId,
@@ -24,9 +23,8 @@ class POI  {
     required this.imagen,
     required this.latitud,
     required this.longitud,
-    required this.categorias,
-    required this.actividades,
+    this.categorias = const [],
+    this.actividades = const [],
     required this.vistas360,
-
   });
 }
