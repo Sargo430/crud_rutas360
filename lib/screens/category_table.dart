@@ -25,46 +25,162 @@ class _CategoryTableState extends State<CategoryTable> {
     return BlocBuilder<CategoryBloc, CategoryState>(
       builder: (context, state) {
         if (state is CategoryLoaded) {
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
+          const double rowHeight = 56.0;
+          const double headerHeight = 50.0;
+          final double tableHeight =
+              headerHeight + (state.categories.length * rowHeight);
+
+          return Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Encabezado
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Categorías',
-                      style: TextStyle(fontSize: 24, color: Colors.black),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          "Categorías",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Gestiona las categorías del sistema",
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 16),
                     ElevatedButton.icon(
                       onPressed: () {
                         context.go('/categorias/create');
                       },
                       icon: const Icon(Icons.add, color: Colors.white),
                       label: const Text(
-                        'Agregar Categoría',
+                        "Agregar Categoría",
                         style: TextStyle(color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4D67AE),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                    )
                   ],
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 20),
 
-              Expanded(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: CategoryDataTable(categories: state.categories),
+                // Tabla de categorías
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: tableHeight,
+                    child: DataTableTheme(
+                      data: DataTableThemeData(
+                        headingRowHeight: headerHeight,
+                        dataRowMinHeight: rowHeight,
+                        dataRowMaxHeight: rowHeight,
+                        headingRowColor: WidgetStateProperty.all(
+                          const Color(0xFFF3F4F6),
+                        ),
+                      ),
+                      child: DataTable(
+                        columnSpacing: 24,
+                        border: TableBorder(
+                          horizontalInside: BorderSide(
+                            width: 0.3,
+                            color: Colors.grey.shade300,
+                          ),
+                        ),
+                        columns: const [
+                          DataColumn(label: Text("ID")),
+                          DataColumn(label: Text("Nombre (ES)")),
+                          DataColumn(label: Text("Nombre (EN)")),
+                          DataColumn(label: Text("Nombre (PT)")),
+                          DataColumn(label: Text("Color del Texto")),
+                          DataColumn(label: Text("Color de Fondo")),
+                          DataColumn(label: Text("Acciones")),
+                        ],
+                        rows: state.categories.map((category) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(category.id)),
+                              DataCell(Text(category.nombre['es'] ?? '')),
+                              DataCell(Text(category.nombre['en'] ?? '')),
+                              DataCell(Text(category.nombre['pt'] ?? '')),
+
+                              // 🎨 Color del texto
+                              DataCell(Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor:
+                                        getColorFromHex(category.textColor),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(category.textColor,
+                                      style: const TextStyle(fontSize: 12)),
+                                ],
+                              )),
+
+                              // 🎨 Color del fondo
+                              DataCell(Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor:
+                                        getColorFromHex(category.backgroundColor),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(category.backgroundColor,
+                                      style: const TextStyle(fontSize: 12)),
+                                ],
+                              )),
+
+                              // Acciones
+                              DataCell(Row(
+                                children: [
+                                  IconButton(
+                                    tooltip: "Editar",
+                                    icon: const Icon(Icons.edit,
+                                        color: Color(0xFF4D67AE)),
+                                    onPressed: () {
+                                      context.go(
+                                        '/categorias/edit/${category.id}',
+                                        extra: category,
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    tooltip: "Eliminar",
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.redAccent),
+                                    onPressed: () {
+                                      fnDeleteCategory(category.id, context);
+                                    },
+                                  ),
+                                ],
+                              )),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         } else {
           return const Center(child: CircularProgressIndicator());
@@ -72,108 +188,26 @@ class _CategoryTableState extends State<CategoryTable> {
       },
     );
   }
-}
 
-class CategorySource extends DataTableSource {
-  final List categories;
-  final BuildContext context;
-  CategorySource(this.categories, this.context);
-
-  @override
-  DataRow? getRow(int index) {
-    if (index >= categories.length) return null;
-    final category = categories[index];
-    return DataRow.byIndex(
-      index: index,
-      cells: [
-        DataCell(Text(category.id)),
-        DataCell(Text(category.nombre['es'])),
-        DataCell(Text(category.nombre['en'])),
-        DataCell(Text(category.nombre['pt'])),
-        DataCell(
-          Row(
-            children: [
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: getColorFromHex(category.textColor),
-                  border: Border.all(color: Colors.black26, width: 1),
-                ),
-              ),
-              SizedBox(width: 8),
-              Text(category.textColor),
-            ],
-          ),
-        ),
-        DataCell(
-          Row(
-            children: [
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: getColorFromHex(category.backgroundColor),
-                  border: Border.all(color: Colors.black26, width: 1),
-                ),
-              ),
-              SizedBox(width: 8),
-              Text(category.backgroundColor),
-            ],
-          ),
-        ),
-        DataCell(
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () {
-                  // Navegar a la pantalla de edición con la categoría como argumento
-                  context.go('/categorias/edit/${category.id}', extra: category);
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  // Manejar la eliminación de la categoría
-                  fnDeleteCategory(category.id, context);
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  bool get isRowCountApproximate => false;
-
-  @override
-  int get rowCount => categories.length;
-
-  @override
-  int get selectedRowCount => 0;
-
-  void fnDeleteCategory(id, BuildContext context) {
+  void fnDeleteCategory(String id, BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: const Text(
-          '¿Estás seguro de que deseas eliminar esta categoría?',
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Confirmar eliminación"),
+        content:
+            const Text("¿Estás seguro de que deseas eliminar esta categoría?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: const Text("Cancelar"),
           ),
           TextButton(
             onPressed: () {
               BlocProvider.of<CategoryBloc>(context).add(DeleteCategory(id));
               Navigator.of(context).pop();
             },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: const Text("Eliminar", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -193,30 +227,5 @@ class CategorySource extends DataTableSource {
     } catch (e) {
       return Colors.transparent;
     }
-  }
-}
-
-class CategoryDataTable extends StatelessWidget {
-  final List<PoiCategory> categories;
-  const CategoryDataTable({super.key, required this.categories});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
-      child: PaginatedDataTable(
-        rowsPerPage: 10,
-        columns: const [
-          DataColumn(label: Text('Nombre')),
-          DataColumn(label: Text('es')),
-          DataColumn(label: Text('en')),
-          DataColumn(label: Text('pt')),
-          DataColumn(label: Text('Color del texto')),
-          DataColumn(label: Text('Color de fondo')),
-          DataColumn(label: Text('Acciones')),
-        ],
-        source: CategorySource(categories, context),
-      ),
-    );
   }
 }
