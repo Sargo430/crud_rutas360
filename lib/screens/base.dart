@@ -116,28 +116,36 @@ class _BaseState extends State<Base> {
                   );
                 },
                 footerBuilder: (context, extended) {
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.person_outline,
-                          size: 20,
-                          color: Colors.black54,
-                        ),
-                        const SizedBox(width: 8),
-                        if (extended)
-                          Expanded(
-                            child: Text(
-                              "Usuario Demo",
-                              style: TextStyle(
-                                color: Colors.black54,
-                                fontSize: 14,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                  return GestureDetector(
+                    onTap: () async {
+                      await FirebaseAuth.instance.signOut();
+                      if (context.mounted) {
+                        context.go('/');
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.logout,
+                            size: 20,
+                            color: Colors.black54,
                           ),
-                      ],
+                          const SizedBox(width: 8),
+                          if (extended)
+                            Expanded(
+                              child: Text(
+                                "Cerrar sesión ",
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   );
                 },
