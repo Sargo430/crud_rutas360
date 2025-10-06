@@ -1,11 +1,14 @@
 import 'package:crud_rutas360/blocs/activity_bloc.dart';
 import 'package:crud_rutas360/blocs/category_bloc.dart';
+import 'package:crud_rutas360/blocs/poi_bloc.dart';
 import 'package:crud_rutas360/blocs/route_bloc.dart';
 import 'package:crud_rutas360/events/activity_event.dart';
 import 'package:crud_rutas360/events/category_event.dart';
+import 'package:crud_rutas360/events/poi_events.dart';
 import 'package:crud_rutas360/firebase_options.dart';
 import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/models/category_model.dart';
+import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/screens/activity_form.dart';
 import 'package:crud_rutas360/screens/activity_table.dart';
 import 'package:crud_rutas360/screens/base.dart';
@@ -14,8 +17,12 @@ import 'package:crud_rutas360/screens/category_table.dart';
 import 'package:crud_rutas360/screens/create_route.dart';
 import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/screens/home.dart';
+import 'package:crud_rutas360/screens/login_page.dart';
+import 'package:crud_rutas360/screens/poi_form.dart';
+import 'package:crud_rutas360/screens/poi_table.dart';
 import 'package:crud_rutas360/screens/rutas_table.dart';
 import 'package:crud_rutas360/services/firestore_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,8 +43,20 @@ class MainApp extends StatelessWidget {
     final sectionNavigatorKey = GlobalKey<NavigatorState>();
     final GoRouter router = GoRouter(
       navigatorKey: rootNavigatorKey,
-      routes: <RouteBase>[
+      routes: 
+      <RouteBase>[
+        GoRoute(
+          path: '/',
+          builder: (context, state) => const LoginPage(),
+        ),
         StatefulShellRoute.indexedStack(
+          redirect: (context, state) {
+            final user = FirebaseAuth.instance.currentUser;
+            if (user == null) {
+              return '/';
+            }
+            return null;
+          },
           builder: (context, state, navigationShell) {
             return Base(navigationShell: navigationShell);
           },
@@ -46,7 +65,7 @@ class MainApp extends StatelessWidget {
               navigatorKey: sectionNavigatorKey,
               routes: [
                 GoRoute(
-                  path: '/',
+                  path: '/home',
                   builder: (context, state) => const HomePage(),
                 ),
               ],
@@ -88,7 +107,23 @@ class MainApp extends StatelessWidget {
               routes: <RouteBase>[
                 GoRoute(
                   path: '/pois',
-                  builder: (context, state) => const Card(child: Text('POIs')),
+                  builder: (context, state) => const PoiTable(),
+                  routes: <RouteBase>[
+                    GoRoute(
+                      path: 'create',
+                      builder: (context, state) {
+                        context.read<PoiBloc>().add(SelectPOI(poi: null));
+                        return const PoiForm();
+                      },
+                    ),
+                    GoRoute(
+                      path: 'edit/:id',
+                      builder: (context, state) {
+                        context.read<PoiBloc>().add(SelectPOI(poi: state.extra as POI));
+                        return const PoiForm();
+                      },
+                    )
+                  ]
                 ),
               ],
             ),
@@ -142,15 +177,17 @@ class MainApp extends StatelessWidget {
             ),
           ],
         ),
-      ],
+      ],  
     );
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => RouteBloc(FireStoreService())),
         BlocProvider(create: (context) => CategoryBloc(FireStoreService())),
         BlocProvider(create: (context) => ActivityBloc(FireStoreService())),
+        BlocProvider(create: (context) => PoiBloc(FireStoreService())),
       ],
       child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
         title: 'Rutas360',
         theme: ThemeData(primarySwatch: Colors.blue),
         routerConfig: router,
