@@ -9,244 +9,129 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final Color mainColor = const Color(0xFF4D67AE);
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '¿Que acción quieres realizar?',
-              style: TextStyle(fontSize: 24),
+            const Text(
+              "Dashboard",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            // ...existing code...
-            SizedBox(height: 32),
+            const SizedBox(height: 8),
+            const Text(
+              "Bienvenido al sistema de gestión CRUD Rutas 360",
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+            ),
+            const SizedBox(height: 32),
+
+            // GRID RESPONSIVO
             LayoutBuilder(
               builder: (context, constraints) {
-                return Column(
+                // Calcular cuántas columnas mostrar según ancho disponible
+                int crossAxisCount = 1;
+                if (constraints.maxWidth >= 1000) {
+                  crossAxisCount = 4; // Escritorio
+                } else if (constraints.maxWidth >= 600) {
+                  crossAxisCount = 2; // Tablet
+                }
+
+                return GridView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: 1.2, // Proporción de la card
+                  ),
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Card( //Card de Rutas ------------------------------
-                            child: Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Rutas",
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(height: 24),
-                                      FilledButton(
-                                        onPressed: () {
-                                          context.go('/rutas/create');
-                                        },
-                                        style: FilledButton.styleFrom(
-                                          minimumSize: Size(
-                                            double.infinity,
-                                            50,
-                                          ),
-                                          backgroundColor: Color(0xFF4D67AE),
-                                        ),
-                                        child: Text("Crear nueva Ruta"),
-                                      ),
-                                      SizedBox(height: 16),
-                                      FilledButton(
-                                        onPressed: () {
-                                          context.go('/rutas');
-                                        },
-                                        style: FilledButton.styleFrom(
-                                          minimumSize: Size(
-                                            double.infinity,
-                                            50,
-                                          ),
-                                          backgroundColor: Color(0xFF4D67AE),
-                                        ),
-                                        child: Text("Ver Rutas"),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 24),
-                        Expanded(
-                          child: Card( //Card de POIs ------------------------------
-                            child: Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Puntos de Interés",
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(height: 24),
-                                      FilledButton(
-                                        onPressed: () {},
-                                        style: FilledButton.styleFrom(
-                                          minimumSize: Size(
-                                            double.infinity,
-                                            50,
-                                          ),
-                                          backgroundColor: Color(0xFF4D67AE),
-                                        ),
-                                        child: Text("Crear nuevo punto"),
-                                      ),
-                                      SizedBox(height: 16),
-                                      FilledButton(
-                                        onPressed: () {},
-                                        style: FilledButton.styleFrom(
-                                          minimumSize: Size(
-                                            double.infinity,
-                                            50,
-                                          ),
-                                          backgroundColor: Color(0xFF4D67AE),
-                                        ),
-                                        child: Text("Ver puntos de interés"),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    _buildDashboardCard(
+                      icon: Icons.map,
+                      title: "Rutas",
+                      subtitle: "Crea y gestiona rutas del sistema",
+                      onTap: () => context.go('/rutas'),
                     ),
-                    SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Card( //Card de Categorías ------------------------------
-                            child: Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Categorías",
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(height: 24),
-                                      FilledButton(
-                                        onPressed: () {
-                                          context.go('/categorias/create');
-                                        },
-                                        style: FilledButton.styleFrom(
-                                          minimumSize: Size(
-                                            double.infinity,
-                                            50,
-                                          ),
-                                          backgroundColor: Color(0xFF4D67AE),
-                                        ),
-                                        child: Text("Crear nueva categoría"),
-                                      ),
-                                      SizedBox(height: 16),
-                                      FilledButton(
-                                        onPressed: () {
-                                          context.go('/categorias');
-                                        },
-                                        style: FilledButton.styleFrom(
-                                          minimumSize: Size(
-                                            double.infinity,
-                                            50,
-                                          ),
-                                          backgroundColor: Color(0xFF4D67AE),
-                                        ),
-                                        child: Text("Ver Categorías"),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 24),
-                        Expanded(
-                          child: Card(
-                            child: Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Actividades",
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(height: 24),
-                                      FilledButton(
-                                        onPressed: () {
-                                          context.go('/actividades/create');
-                                        },
-                                        style: FilledButton.styleFrom(
-                                          minimumSize: Size(
-                                            double.infinity,
-                                            50,
-                                          ),
-                                          backgroundColor: Color(0xFF4D67AE),
-                                        ),
-                                        child: Text("Crear nueva actividad"),
-                                      ),
-                                      SizedBox(height: 16),
-                                      FilledButton(
-                                        onPressed: () {
-                                          context.go('/actividades');
-                                        },
-                                        style: FilledButton.styleFrom(
-                                          minimumSize: Size(
-                                            double.infinity,
-                                            50,
-                                          ),
-                                          backgroundColor: Color(0xFF4D67AE),
-                                        ),
-                                        child: Text("Ver actividades"),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    _buildDashboardCard(
+                      icon: Icons.place,
+                      title: "POIs",
+                      subtitle: "Administra puntos de interés",
+                      onTap: () => context.go('/pois'),
+                    ),
+                    _buildDashboardCard(
+                      icon: Icons.category,
+                      title: "Categorías",
+                      subtitle: "Organiza por categorías",
+                      onTap: () => context.go('/categorias'),
+                    ),
+                    _buildDashboardCard(
+                      icon: Icons.directions_walk,
+                      title: "Actividades",
+                      subtitle: "Gestiona actividades disponibles",
+                      onTap: () => context.go('/actividades'),
                     ),
                   ],
                 );
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, // Ícono alineado a la izquierda
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: mainColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 28, color: mainColor),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: const TextStyle(color: Colors.black54, fontSize: 14),
+              ),
+            ],
+          ),
         ),
       ),
     );

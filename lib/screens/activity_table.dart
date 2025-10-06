@@ -1,4 +1,3 @@
-
 import 'package:crud_rutas360/blocs/activity_bloc.dart';
 import 'package:crud_rutas360/events/activity_event.dart';
 import 'package:crud_rutas360/models/activity_model.dart';
@@ -26,46 +25,160 @@ class _ActivityTableState extends State<ActivityTable> {
     return BlocBuilder<ActivityBloc, ActivityState>(
       builder: (context, state) {
         if (state is ActivityLoaded) {
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
+          const double rowHeight = 56.0;
+          const double headerHeight = 50.0;
+          final double tableHeight =
+              headerHeight + (state.activities.length * rowHeight);
+
+          return Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Encabezado
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Actividades',
-                      style: TextStyle(fontSize: 24, color: Colors.black),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          "Actividades",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Gestiona las actividades del sistema",
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 16),
                     ElevatedButton.icon(
                       onPressed: () {
                         context.go('/actividades/create');
                       },
                       icon: const Icon(Icons.add, color: Colors.white),
                       label: const Text(
-                        'Agregar Actividad',
+                        "Agregar Actividad",
                         style: TextStyle(color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4D67AE),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
                   ],
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 20),
 
-              Expanded(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ActivityDataTable(activities: state.activities),
+                // Tabla de actividades
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: tableHeight,
+                    child: DataTableTheme(
+                      data: DataTableThemeData(
+                        headingRowHeight: headerHeight,
+                        dataRowMinHeight: rowHeight,
+                        dataRowMaxHeight: rowHeight,
+                        headingRowColor: WidgetStateProperty.all(
+                          const Color(0xFFF3F4F6),
+                        ),
+                      ),
+                      child: DataTable(
+                        columnSpacing: 24,
+                        border: TableBorder(
+                          horizontalInside: BorderSide(
+                            width: 0.3,
+                            color: Colors.grey.shade300,
+                          ),
+                        ),
+                        columns: const [
+                          DataColumn(label: Text("ID")),
+                          DataColumn(label: Text("Nombre (ES)")),
+                          DataColumn(label: Text("Nombre (EN)")),
+                          DataColumn(label: Text("Nombre (PT)")),
+                          DataColumn(label: Text("Color del Texto")),
+                          DataColumn(label: Text("Color de Fondo")),
+                          DataColumn(label: Text("Acciones")),
+                        ],
+                        rows: state.activities.map((activity) {
+                          return DataRow(
+                            cells: [
+                              DataCell(Text(activity.id)),
+                              DataCell(Text(activity.nombre['es'] ?? '')),
+                              DataCell(Text(activity.nombre['en'] ?? '')),
+                              DataCell(Text(activity.nombre['pt'] ?? '')),
+
+                              // 🎨 Color del texto
+                              DataCell(Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 10,
+                                    backgroundColor:
+                                        getColorFromHex(activity.textColor),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(activity.textColor),
+                                ],
+                              )),
+
+                              // 🎨 Color del fondo
+                              DataCell(Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 10,
+                                    backgroundColor:
+                                        getColorFromHex(activity.backgroundColor),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(activity.backgroundColor),
+                                ],
+                              )),
+
+                              // Acciones
+                              DataCell(Row(
+                                children: [
+                                  IconButton(
+                                    tooltip: "Editar",
+                                    icon: const Icon(Icons.edit,
+                                        color: Color(0xFF4D67AE)),
+                                    onPressed: () {
+                                      context.go(
+                                        '/actividades/edit/${activity.id}',
+                                        extra: activity,
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    tooltip: "Eliminar",
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.redAccent),
+                                    onPressed: () {
+                                      fnDeleteActivity(activity.id, context);
+                                    },
+                                  ),
+                                ],
+                              )),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         } else {
           return const Center(child: CircularProgressIndicator());
@@ -73,108 +186,26 @@ class _ActivityTableState extends State<ActivityTable> {
       },
     );
   }
-}
 
-class ActivitySource extends DataTableSource {
-  final List activities;
-  final BuildContext context;
-  ActivitySource(this.activities, this.context);
-
-  @override
-  DataRow? getRow(int index) {
-    if (index >= activities.length) return null;
-    final activity = activities[index];
-    return DataRow.byIndex(
-      index: index,
-      cells: [
-        DataCell(Text(activity.id)),
-        DataCell(Text(activity.nombre['es'])),
-        DataCell(Text(activity.nombre['en'])),
-        DataCell(Text(activity.nombre['pt'])),
-        DataCell(
-          Row(
-            children: [
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: getColorFromHex(activity.textColor),
-                  border: Border.all(color: Colors.black26, width: 1),
-                ),
-              ),
-              SizedBox(width: 8),
-              Text(activity.textColor),
-            ],
-          ),
-        ),
-        DataCell(
-          Row(
-            children: [
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: getColorFromHex(activity.backgroundColor),
-                  border: Border.all(color: Colors.black26, width: 1),
-                ),
-              ),
-              SizedBox(width: 8),
-              Text(activity.backgroundColor),
-            ],
-          ),
-        ),
-        DataCell(
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () {
-                  // Navegar a la pantalla de edición con la actividad como argumento
-                  context.go('/actividades/edit/${activity.id}', extra: activity);
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  // Manejar la eliminación de la actividad
-                  fnDeleteActivity(activity.id, context);
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  bool get isRowCountApproximate => false;
-
-  @override
-  int get rowCount => activities.length;
-
-  @override
-  int get selectedRowCount => 0;
-
-  void fnDeleteActivity(id, BuildContext context) {
+  void fnDeleteActivity(String id, BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: const Text(
-          '¿Estás seguro de que deseas eliminar esta actividad?',
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Confirmar eliminación"),
+        content:
+            const Text("¿Estás seguro de que deseas eliminar esta actividad?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: const Text("Cancelar"),
           ),
           TextButton(
             onPressed: () {
               BlocProvider.of<ActivityBloc>(context).add(DeleteActivity(id));
               Navigator.of(context).pop();
             },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: const Text("Eliminar", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -194,30 +225,5 @@ class ActivitySource extends DataTableSource {
     } catch (e) {
       return Colors.transparent;
     }
-  }
-}
-
-class ActivityDataTable extends StatelessWidget {
-  final List<Activity> activities;
-  const ActivityDataTable({super.key, required this.activities});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
-      child: PaginatedDataTable(
-        rowsPerPage: 10,
-        columns: const [
-          DataColumn(label: Text('Nombre')),
-          DataColumn(label: Text('es')),
-          DataColumn(label: Text('en')),
-          DataColumn(label: Text('pt')),
-          DataColumn(label: Text('Color del texto')),
-          DataColumn(label: Text('Color de fondo')),
-          DataColumn(label: Text('Acciones')),
-        ],
-        source: ActivitySource(activities, context),
-      ),
-    );
   }
 }
