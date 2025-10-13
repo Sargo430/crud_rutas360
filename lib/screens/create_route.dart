@@ -3,6 +3,7 @@ import 'package:crud_rutas360/events/route_event.dart';
 import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/states/route_state.dart';
+import 'package:crud_rutas360/widgets/build_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -129,10 +130,7 @@ class _CreateRouteState extends State<CreateRoute> {
                               ),
                               const Divider(height: 24),
 
-                              _buildSection(
-                                title: "Información de la Ruta",
-                                subtitle: "Nombre identificador de la ruta",
-                                child: TextFormField(
+                              BuildSection(mainColor: mainColor, title: "Información de la Ruta", subtitle: "Nombre identificador de la ruta", child: TextFormField(
                                   controller: _nameController,
                                   decoration: _inputDecoration(
                                     label: "Nombre de la Ruta",
@@ -142,14 +140,10 @@ class _CreateRouteState extends State<CreateRoute> {
                                       value == null || value.isEmpty
                                       ? 'Por favor ingresa un nombre'
                                       : null,
-                                ),
-                              ),
+                                )),
                               const SizedBox(height: 20),
 
-                              _buildSection(
-                                title: "Punto Inicial",
-                                subtitle: "Coordenadas del punto de partida",
-                                child: Row(
+                              BuildSection(mainColor: mainColor, title: "Punto Inicial", subtitle: "Coordenadas del punto de partida", child: Row(
                                   children: [
                                     Expanded(
                                       child: TextFormField(
@@ -177,14 +171,10 @@ class _CreateRouteState extends State<CreateRoute> {
                                       ),
                                     ),
                                   ],
-                                ),
-                              ),
+                                )),
                               const SizedBox(height: 20),
 
-                              _buildSection(
-                                title: "Punto Final",
-                                subtitle: "Coordenadas del punto de destino",
-                                child: Row(
+                              BuildSection(mainColor: mainColor, title: "Punto Final", subtitle: "Coordenadas del punto de destino", child: Row(
                                   children: [
                                     Expanded(
                                       child: TextFormField(
@@ -212,14 +202,10 @@ class _CreateRouteState extends State<CreateRoute> {
                                       ),
                                     ),
                                   ],
-                                ),
-                              ),
+                                )),
                               const SizedBox(height: 20),
 
-                              _buildSection(
-                                title: "Puntos de Interés",
-                                subtitle: "Selecciona los POIs a incluir",
-                                child: (() {
+                              BuildSection(mainColor: mainColor, title: "Puntos de Interés", subtitle: "Selecciona los POIs a incluir", child: (() {
                                   // Combine POIs from route and unasigned
                                   final routePOIs = widget.route?.pois ?? [];
                                   final unasignedPOIs = state.unasignedPOIs;
@@ -286,8 +272,7 @@ class _CreateRouteState extends State<CreateRoute> {
                                       ),
                                     );
                                   }
-                                })(),
-                              ),
+                                })()),
                               const SizedBox(height: 32),
 
                               Row(
@@ -452,41 +437,6 @@ class _CreateRouteState extends State<CreateRoute> {
     );
   }
 
-  Widget _buildSection({
-    required String title,
-    required String subtitle,
-    required Widget child,
-  }) {
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(left: BorderSide(color: mainColor, width: 4)),
-        ),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: mainColor,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(color: Colors.black54)),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
-
   InputDecoration _inputDecoration({required String label, String? hint}) {
     return InputDecoration(
       labelText: label,
@@ -525,3 +475,5 @@ class _CreateRouteState extends State<CreateRoute> {
     );
   }
 }
+
+

@@ -125,7 +125,7 @@ class _CategoryFormState extends State<CategoryForm> {
                               ),
                               const SizedBox(height: 20),
 
-                              // 🚀 Paso 2: dos columnas con círculos (sin textfields)
+                              //  Paso 2: dos columnas con círculos (sin textfields)
                               _buildStepCard(
                                 icon: Icons.color_lens,
                                 title: "Paso 2: Personalización de Colores",

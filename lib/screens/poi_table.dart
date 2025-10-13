@@ -16,7 +16,11 @@ class PoiTable extends StatefulWidget {
 class _PoiTableState extends State<PoiTable> {
   @override
   void initState() {
-    BlocProvider.of<PoiBloc>(context).add(LoadPOIs());
+    // Only load POIs if we don't already have them loaded
+    final bloc = BlocProvider.of<PoiBloc>(context);
+    if (bloc.state is! PoiLoaded && bloc.state is! PoiLoadedWithSuccess) {
+      bloc.add(LoadPOIs());
+    }
     super.initState();
   }
 
@@ -24,7 +28,8 @@ class _PoiTableState extends State<PoiTable> {
   Widget build(BuildContext context) {
     return BlocBuilder<PoiBloc, PoiState>(
       builder: (context, state) {
-        if (state is PoiLoaded) {
+        if (state is PoiLoaded || state is PoiLoadedWithSuccess) {
+          final pois = state is PoiLoaded ? state.pois : (state as PoiLoadedWithSuccess).pois;
           return Column(
             children: [
               Padding(
@@ -60,13 +65,13 @@ class _PoiTableState extends State<PoiTable> {
               Expanded(
                 child: SizedBox(
                   width: double.infinity,
-                  child: PoiDataTable(pois: state.pois),
+                  child: PoiDataTable(pois: pois),
                 ),
               ),
             ],
           );
         } else if (state is PoiError) {
-          return Center(child: Text('Error loading POIs'));
+          return Center(child: Text('Error loading POIs: ${state.error}'));
         } else {
           return const Center(child: CircularProgressIndicator());
         }

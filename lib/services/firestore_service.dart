@@ -1,8 +1,11 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/models/category_model.dart';
 import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/models/route_model.dart';
+import 'package:crud_rutas360/services/storage_service.dart';
+import 'package:file_picker/file_picker.dart';
 
 class FireStoreService {
   final CollectionReference _routesCollection = FirebaseFirestore.instance
@@ -20,32 +23,36 @@ class FireStoreService {
             .collection('poi')
             .get();
         for (var doc in poiCollection.docs) {
-          final data = doc.data();
-          final categorias = await fetchCategories(
-          List<String>.from((data['categoria'] ?? ['vacio'])),
-        );
-        final actividades = await fetchActivities(
-          List<String>.from((data['actividades'] ?? ['vacio'])),
-        );
-          pois.add(
-            POI(
-              id: doc.id,
-              routeId: routeDoc.id,
-              routeName: routeDoc.data()['nombre']?.toString() ?? '',
-              nombre: data['nombre']?.toString() ?? '',
-              descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
-              imagen: data['imagen']?.toString() ?? '',
-              latitud: (data['latitud'] ?? 0).toDouble(),
-              longitud: (data['longitud'] ?? 0).toDouble(),
-              categorias: categorias,
-              actividades: actividades,
-              vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
-            ),
-          );
+          
+            final data = doc.data();
+            
+            final categorias = await fetchCategories(
+              List<String>.from((data['categoria'] ?? ['vacio'])),
+            );
+            final actividades = await fetchActivities(
+              List<String>.from((data['actividades'] ?? ['vacio'])),
+            );
+            pois.add(
+              POI(
+                id: doc.id,
+                routeId: routeDoc.id,
+                routeName: routeDoc.data()['nombre']?.toString() ?? '',
+                nombre: data['nombre']?.toString() ?? '',
+                descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
+                imagen: data['imagen']?.toString() ?? '',
+                latitud: (data['latitud'] ?? 0).toDouble(),
+                longitud: (data['longitud'] ?? 0).toDouble(),
+                categorias: categorias,
+                actividades: actividades,
+                vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
+              ),
+            );
+          
         }
       }
       return pois;
     } catch (e) {
+  
       throw Exception('Error fetching POIs: $e');
     }
   }
@@ -87,40 +94,168 @@ class FireStoreService {
     }
   }
 
-  Future<void> addPOI(POI poi, String routeId) {
-    return FirebaseFirestore.instance
-        .collection('ruta')
-        .doc(routeId)
-        .collection('poi')
-        .add({
-          'nombre': poi.nombre,
-          'descripcion': poi.descripcion,
-          'imagen': poi.imagen,
-          'latitud': poi.latitud,
-          'longitud': poi.longitud,
-          'categoria': poi.categorias.map((cat) => cat.id).toList(),
-          'actividades': poi.actividades.map((act) => act.id).toList(),
-          'vistas360': poi.vistas360,
-        });
+  Future<void> addPOI(POI poi, String routeId, PlatformFile? image, Map<String, PlatformFile?>? new360views) async {
+    try {
+      
+  
+      // Upload main image only if provided with bytes; else keep empty string
+      String imageUrl = '';
+      if (image != null && image.bytes != null && image.bytes!.isNotEmpty) {
+        final baseName = image.name;
+        final ext = image.extension ?? 'jpg';
+        final normalized = baseName.toLowerCase().endsWith('.$ext')
+            ? baseName
+            : '$baseName.$ext';
+        imageUrl = await StorageService().uploadBytes(
+          image.bytes!,
+          normalized,
+          ext,
+        );
+      }
+
+      // Upload seasonal 360 only if bytes present; else empty string
+      Future<String> uploadOrEmpty(PlatformFile? f, String fallbackName) async {
+        if (f != null && f.bytes != null && f.bytes!.isNotEmpty) {
+          final ext = f.extension ?? 'jpg';
+          final baseName = f.name.isNotEmpty ? f.name : fallbackName;
+          final normalized = baseName.toLowerCase().endsWith('.$ext')
+              ? baseName
+              : '$baseName.$ext';
+          return await StorageService().uploadBytes(
+            f.bytes!,
+            normalized,
+            ext,
+          );
+        }
+        return '';
+      }
+
+      final Map<String, String> vistas360Urls = {
+        'Invierno': await uploadOrEmpty(new360views?['Invierno'], 'invierno'),
+        'Primavera': await uploadOrEmpty(new360views?['Primavera'], 'primavera'),
+        'Verano': await uploadOrEmpty(new360views?['Verano'], 'verano'),
+        'Otoño': await uploadOrEmpty(new360views?['Otoño'], 'otono'),
+      };
+      
+      await FirebaseFirestore.instance
+          .collection('ruta')
+          .doc(routeId)
+          .collection('poi')
+          .add({
+            'nombre': poi.nombre,
+            'descripcion': poi.descripcion,
+            'imagen': imageUrl,
+            'latitud': poi.latitud,
+            'longitud': poi.longitud,
+            'categoria': poi.categorias.map((cat) => cat.id).toList(),
+            'actividades': poi.actividades.map((act) => act.id).toList(),
+            'vistas360': vistas360Urls,
+          });
+     
+    } catch (e) {
+      
+      throw Exception('Error adding POI: $e');
+    }
   }
 
-  Future<void> updatePOI(POI poi, String routeId) {
-    return FirebaseFirestore.instance
-        .collection('ruta')
-        .doc(routeId)
-        .collection('poi')
-        .doc(poi.id)
-        .update({
-          'nombre': poi.nombre,
-          'routeId': poi.routeId,
-          'descripcion': poi.descripcion,
-          'imagen': poi.imagen,
-          'latitud': poi.latitud,
-          'longitud': poi.longitud,
-          'categoria': poi.categorias.map((cat) => cat.id).toList(),
-          'actividades': poi.actividades.map((act) => act.id).toList(),
-          'vistas360': poi.vistas360,
-        });
+  Future<void> updatePOI(
+    POI poi,
+    String routeId, {
+    PlatformFile? image,
+    Map<String, PlatformFile?>? new360views,
+  }) async {
+    try {
+      
+      
+      final docRef = FirebaseFirestore.instance
+          .collection('ruta')
+          .doc(routeId)
+          .collection('poi')
+          .doc(poi.id);
+
+      
+      final snapshot = await docRef.get();
+      if (!snapshot.exists) {
+        throw Exception('POI not found for update');
+      }
+      final data = snapshot.data() as Map<String, dynamic>;
+      
+
+      // Existing URLs
+      String currentImageUrl = (data['imagen'] ?? '').toString();
+      final Map<String, dynamic> currentVistas =
+          Map<String, dynamic>.from(data['vistas360'] ?? {});
+
+      // Main image: replace if new provided
+      String updatedImageUrl = currentImageUrl;
+      
+      if (image != null && image.bytes != null && image.bytes!.isNotEmpty) {
+        
+        // delete old if exists
+        if (currentImageUrl.isNotEmpty) {
+          
+          await StorageService().deleteFile(currentImageUrl);
+        }
+        final ext = image.extension ?? 'jpg';
+        final baseName = image.name;
+        final normalized = baseName.toLowerCase().endsWith('.$ext')
+            ? baseName
+            : '$baseName.$ext';
+        
+        updatedImageUrl = await StorageService()
+            .uploadBytes(image.bytes!, normalized, ext);
+        
+      }
+
+      // Seasons mapping to ensure consistent keys in Firestore
+      const seasons = ['Invierno', 'Primavera', 'Verano', 'Otoño'];
+      final Map<String, String> updatedVistas = {};
+
+     
+      for (final season in seasons) {
+        final lower = season.toLowerCase();
+        final existingUrl = (currentVistas[season] ?? currentVistas[lower] ?? '')
+            .toString();
+        String newUrl = existingUrl;
+
+        final PlatformFile? newFile = new360views != null
+            ? new360views[season]
+            : null;
+
+        
+        if (newFile != null && newFile.bytes != null && newFile.bytes!.isNotEmpty) {
+          // If replacing, delete existing
+          if (existingUrl.isNotEmpty) {
+            await StorageService().deleteFile(existingUrl);
+          }
+          final ext = newFile.extension ?? 'jpg';
+          final baseName = newFile.name.isNotEmpty ? newFile.name : lower;
+          final normalized = baseName.toLowerCase().endsWith('.$ext')
+              ? baseName
+              : '$baseName.$ext';
+          newUrl = await StorageService()
+              .uploadBytes(newFile.bytes!, normalized, ext);
+        }
+
+        updatedVistas[season] = newUrl; // keep empty string if none
+      }
+
+      await docRef.update({
+        'nombre': poi.nombre,
+        'routeId': poi.routeId,
+        'descripcion': poi.descripcion,
+        'imagen': updatedImageUrl,
+        'latitud': poi.latitud,
+        'longitud': poi.longitud,
+        'categoria': poi.categorias.map((cat) => cat.id).toList(),
+        'actividades': poi.actividades.map((act) => act.id).toList(),
+        'vistas360': updatedVistas,
+      });
+      
+      
+    } catch (e) {
+      throw Exception('Error updating POI: $e');
+    }
   }
 
   Future<void> deletePOI(String poiId, String routeId) {
@@ -240,6 +375,11 @@ class FireStoreService {
 
   Future<List<PoiCategory>> fetchCategories(List<String> list) async {
     try {
+      // Return empty list if no categories to fetch
+      if (list.isEmpty || (list.length == 1 && list.first == 'vacio')) {
+        return [];
+      }
+
       final querySnapshot = await FirebaseFirestore.instance
           .collection('categorias')
           .where(FieldPath.documentId, whereIn: list)
@@ -310,6 +450,11 @@ class FireStoreService {
 
   Future<List<Activity>> fetchActivities(List<String> list) async {
     try {
+      // Return empty list if no activities to fetch
+      if (list.isEmpty || (list.length == 1 && list.first == 'vacio')) {
+        return [];
+      }
+
       final querySnapshot = await FirebaseFirestore.instance
           .collection('actividades')
           .where(FieldPath.documentId, whereIn: list)

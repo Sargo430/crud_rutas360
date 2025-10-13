@@ -24,9 +24,14 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
     on<AddPOI>((event, emit) async {
       emit(PoiLoading());
       try {
-        await fireStoreService.addPOI(event.poi, event.poi.routeId ?? '');
+        await fireStoreService.addPOI(event.poi, event.poi.routeId ?? '',event.image, event.new360Views);
+        
+        // Load the updated POIs first
+        final pois = await fireStoreService.fetchAllPOIs();
+        emit(PoiLoaded(pois));
+        
+        // Then emit success message
         emit(PoiOperationSuccess("POI añadida con éxito"));
-        add(LoadPOIs());
       } catch (e) {
         emit(PoiError(e.toString()));
       }
@@ -35,9 +40,14 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
     on<UpdatePOI>((event, emit) async {
       emit(PoiLoading());
       try {
-        await fireStoreService.updatePOI(event.poi, event.poi.routeId ?? '');
-        emit(PoiOperationSuccess("POI actualizada con éxito"));
-        add(LoadPOIs());
+        await fireStoreService.updatePOI(
+          event.poi,
+          event.poi.routeId ?? '',
+          image: event.image,
+          new360views: event.new360Views,
+        );
+        final pois = await fireStoreService.fetchAllPOIs();
+        emit(PoiLoadedWithSuccess(pois, "POI actualizada con éxito"));
       } catch (e) {
         emit(PoiError(e.toString()));
       }
@@ -47,23 +57,23 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
       emit(PoiLoading());
       try {
         await fireStoreService.deletePOI(event.poiId, event.routeId);
+        
+        // Load the updated POIs first
+        final pois = await fireStoreService.fetchAllPOIs();
+        emit(PoiLoaded(pois));
+        
+        // Then emit success message
         emit(PoiOperationSuccess("POI eliminada con éxito"));
-        add(LoadPOIs());
       } catch (e) {
         emit(PoiError(e.toString()));
       }
-    },
-    );
+    });
+
     on<SelectPOI>((event, emit) async {
-  final categories = await fireStoreService.fetchAllCategories();
-  final activities = await fireStoreService.fetchAllActivities();
-  final routes = await fireStoreService.fetchAllRoutes();
-      emit(PoiFormState(
-        poi: event.poi,
-        routes: routes,
-        categories: categories,
-        activities: activities,
-      ));
+      List<PoiCategory> categories = await fireStoreService.fetchAllCategories();
+      List<Activity> activities = await fireStoreService.fetchAllActivities();
+      List<MapRoute> routes = await fireStoreService.fetchAllRoutes();
+      emit(PoiFormState(poi: event.poi, routes: routes, categories: categories, activities: activities));
     });
 
   }

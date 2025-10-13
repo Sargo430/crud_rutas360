@@ -21,6 +21,12 @@ class PoiOperationSuccess extends PoiState {
   PoiOperationSuccess(this.message);
 }
 
+class PoiLoadedWithSuccess extends PoiState {
+  final List<POI> pois;
+  final String message;
+  PoiLoadedWithSuccess(this.pois, this.message);
+}
+
 class PoiError extends PoiState {
   final String error;
   PoiError(this.error);

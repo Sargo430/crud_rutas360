@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -11,7 +10,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   @override
@@ -37,10 +35,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Iniciar Sesión',
-                style: TextStyle(fontSize: 32),
-              ),
+              const Text('Iniciar Sesión', style: TextStyle(fontSize: 32)),
               const SizedBox(height: 20),
               TextField(
                 controller: emailController,
@@ -61,28 +56,24 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  fnlogin(emailController.text.trim(), passwordController.text.trim());
-                    
+                  fnlogin(
+                    emailController.text.trim(),
+                    passwordController.text.trim(),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4D67AE),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 50, vertical: 15),
+                    horizontal: 50,
+                    vertical: 15,
+                  ),
                 ),
-                child: const Text('Iniciar Sesión', style:TextStyle(color: Colors.white) ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  fnlogin("test@test.cl", "12345678");
-                    
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4D67AE),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 50, vertical: 15),
+                child: const Text(
+                  'Iniciar Sesión',
+                  style: TextStyle(color: Colors.white),
                 ),
-                child: const Text('login', style:TextStyle(color: Colors.white) ),
               ),
+              
             ],
           ),
         ),
@@ -90,24 +81,22 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-
   void fnlogin(String email, String password) async {
-  final ctx = context; // 
+    final ctx = context; //
 
-  try {
-     FirebaseAuth.instance
-        .signInWithEmailAndPassword(email: email, password: password);
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    if (!ctx.mounted) return; 
-    ctx.go('/home'); 
-
-  } on FirebaseAuthException catch (e) {
-    if (!ctx.mounted) return;
-    ScaffoldMessenger.of(ctx).showSnackBar(
-      SnackBar(content: Text(e.message ?? 'Error al iniciar sesión')),
-    );
+      if (!ctx.mounted) return;
+      ctx.go('/home');
+    } on FirebaseAuthException catch (e) {
+      if (!ctx.mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Error al iniciar sesión')),
+      );
+    }
   }
-}
-
-
 }
