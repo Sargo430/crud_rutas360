@@ -443,7 +443,7 @@ class FireStoreService {
 
   Future<void> deleteActivity(String activityId) {
     return FirebaseFirestore.instance
-        .collection('categorias')
+        .collection('actividades')
         .doc(activityId)
         .delete();
   }
