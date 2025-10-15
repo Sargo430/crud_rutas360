@@ -1,4 +1,4 @@
-﻿import 'package:crud_rutas360/blocs/route_bloc.dart';
+import 'package:crud_rutas360/blocs/route_bloc.dart';
 import 'package:crud_rutas360/events/route_event.dart';
 import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/models/route_model.dart';
@@ -95,20 +95,40 @@ class _CreateRouteState extends State<CreateRoute> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<RouteBloc, RouteState>( // 🔧 agregado
-      listener: (context, state) { // 🔧 agregado
-        if (state is RouteOperationSuccess) { // 🔧 agregado
-          final rootContext = widget.rootNavigatorKey.currentContext; // 🔧 agregado
-          if (rootContext != null) { // 🔧 agregado
-            BlocProvider.of<RouteBloc>( // 🔧 agregado
-              rootContext, // 🔧 agregado
-              listen: false, // 🔧 agregado
-            ).add(LoadRoute()); // 🔧 agregado
-          } // 🔧 agregado
-          context.go('/rutas'); // 🔧 agregado
-        } // 🔧 agregado
-      }, // 🔧 agregado
-      child: BlocBuilder<RouteBloc, RouteState>( // 🔧 agregado
+    return BlocListener<RouteBloc, RouteState>(
+      listener: (context, state) {
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+        if (state is RouteOperationSuccess) {
+          scaffoldMessenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+          final rootContext = widget.rootNavigatorKey.currentContext;
+          if (rootContext != null) {
+            BlocProvider.of<RouteBloc>(
+              rootContext,
+              listen: false,
+            ).add(LoadRoute());
+          }
+          context.go('/rutas');
+        } else if (state is RouteError) {
+          scaffoldMessenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(state.error),
+                backgroundColor: Colors.red,
+              ),
+            );
+        }
+      },
+      child: BlocBuilder<RouteBloc, RouteState>(
         builder: (context, state) {
           if (state is RouteCreating) {
           const double kFormWidth = 500;

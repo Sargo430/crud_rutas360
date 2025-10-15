@@ -26,11 +26,11 @@ class _ActivityTableState extends State<ActivityTable> {
       listener: (context, state) {
         if (state is ActivityLoadedWithSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.green), 
           );
         } else if (state is ActivityError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.error), backgroundColor: Colors.redAccent),
+            SnackBar(content: Text(state.error), backgroundColor: Colors.red), 
           );
         }
       },

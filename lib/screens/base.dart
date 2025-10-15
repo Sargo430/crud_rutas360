@@ -1,10 +1,18 @@
+﻿import 'package:crud_rutas360/blocs/activity_bloc.dart';
+import 'package:crud_rutas360/blocs/category_bloc.dart';
+import 'package:crud_rutas360/blocs/poi_bloc.dart';
+import 'package:crud_rutas360/blocs/route_bloc.dart';
+import 'package:crud_rutas360/events/activity_event.dart';
+import 'package:crud_rutas360/events/category_event.dart';
+import 'package:crud_rutas360/events/poi_events.dart';
+import 'package:crud_rutas360/events/route_event.dart';
+import 'package:crud_rutas360/widgets/desktop_only_message.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:crud_rutas360/widgets/desktop_only_message.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sidebarx/sidebarx.dart';
-
 class Base extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
   const Base({super.key, required this.navigationShell});
@@ -21,11 +29,10 @@ class _BaseState extends State<Base> {
     super.initState();
     sidebarController = SidebarXController(
       selectedIndex: widget.navigationShell.currentIndex,
-      extended: true, // 🚀 ahora inicia ABIERTO
+      extended: true, 
     );
   }
 
-  // ── Anchos y medidas del sidebar ──
   static const double kSidebarWidthExpanded = 220;
   static const double kSidebarWidthCollapsed = 80;
   static const double kHandleWidth = 28;
@@ -33,10 +40,24 @@ class _BaseState extends State<Base> {
   static const double kHandleOverlap = 12;
 
   void onItemSelected(int index) {
-    if (index != widget.navigationShell.currentIndex) {
-      widget.navigationShell.goBranch(index);
-      sidebarController.selectIndex(index);
-      // 🚫 no modificar extended -> mantiene abierto o cerrado según estaba
+    widget.navigationShell.goBranch(index, initialLocation: true); //  Cambio: al hacer clic en el botón del sidebar, se redirige a la vista principal del módulo.
+    sidebarController.selectIndex(index); //  Ajuste: se resetea el estado para evitar mostrar pantallas de creación o edición anteriores.
+
+    //  Cambio: al activar una pestaña se solicita la data inicial del módulo seleccionado.
+    //  Ajuste: se emiten los eventos de carga para restablecer el estado base de cada sección.
+    switch (index) {
+      case 1:
+        context.read<RouteBloc>().add(LoadRoute());
+        break;
+      case 2:
+        context.read<PoiBloc>().add(LoadPOIs());
+        break;
+      case 3:
+        context.read<CategoryBloc>().add(LoadCategories());
+        break;
+      case 4:
+        context.read<ActivityBloc>().add(LoadActivities());
+        break;
     }
   }
 
@@ -47,7 +68,6 @@ class _BaseState extends State<Base> {
         defaultTargetPlatform == TargetPlatform.iOS;
     final bool isSmallWidth = media.size.width < 720;
     if (isMobilePlatform || isSmallWidth) {
-      // Bloqueamos dispositivos móviles mostrando un mensaje dedicado.
       return const DesktopOnlyMessage();
     }
 
@@ -192,7 +212,6 @@ class _BaseState extends State<Base> {
             ],
           ),
 
-          // ── Botón de abrir/cerrar ──
           Positioned.fill(
             child: AnimatedBuilder(
               animation: sidebarController,
@@ -212,7 +231,7 @@ class _BaseState extends State<Base> {
                         offset: Offset(animatedWidth - kHandleOverlap, 0),
                         child: GestureDetector(
                           onTap: () =>
-                              sidebarController.setExtended(!isOpen), // 🔘 solo lo controla el usuario
+                              sidebarController.setExtended(!isOpen), 
                           child: Container(
                             width: kHandleWidth,
                             height: kHandleHeight,

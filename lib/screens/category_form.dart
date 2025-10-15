@@ -37,7 +37,7 @@ class _CategoryFormState extends State<CategoryForm> {
       listener: (context, state) {
         if (state is CategoryOperationSuccess) {
           ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(state.message)));
+              .showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.green)); // 🔧 agregado
         }
       },
       builder: (context, state) {

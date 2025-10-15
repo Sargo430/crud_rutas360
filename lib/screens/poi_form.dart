@@ -88,13 +88,13 @@ class _PoiFormState extends State<PoiForm> {
         if (state is PoiOperationSuccess) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
+          ).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.green)); // 🔧 agregado
           // Navigate back to POI table after successful operation
           context.go('/pois');
         } else if (state is PoiLoadedWithSuccess) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
+          ).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.green)); // 🔧 agregado
           // Navigate back to POI table after successful operation
           context.go('/pois');
         }

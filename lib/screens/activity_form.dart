@@ -37,10 +37,10 @@ class _ActivityFormState extends State<ActivityForm> {
       listener: (context, state) {
         if (state is ActivityLoadedWithSuccess) {
           ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(state.message)));
+              .showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.green)); // 🔧 agregado
         } else if (state is ActivityOperationSuccess) {
           ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(state.message)));
+              .showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.green)); // 🔧 agregado
         }
       },
       builder: (context, state) {

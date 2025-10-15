@@ -31,11 +31,11 @@ class _PoiTableState extends State<PoiTable> {
       listener: (context, state) {
         if (state is PoiLoadedWithSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.green), // 🔧 agregado
           );
         } else if (state is PoiError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.error), backgroundColor: Colors.redAccent),
+            SnackBar(content: Text(state.error), backgroundColor: Colors.red), // 🔧 agregado
           );
         }
       },

@@ -105,7 +105,7 @@ class _LoginPageState extends State<LoginPage> {
     } on FirebaseAuthException catch (e) {
       if (!ctx.mounted) return;
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Error al iniciar sesión')),
+        SnackBar(content: Text(e.message ?? 'Error al iniciar sesión'), backgroundColor: Colors.red), // 🔧 agregado
       );
     }
   }
