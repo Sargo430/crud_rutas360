@@ -8,8 +8,8 @@ import 'package:crud_rutas360/services/storage_service.dart';
 import 'package:file_picker/file_picker.dart';
 
 class FireStoreService {
-  final CollectionReference _routesCollection = FirebaseFirestore.instance
-      .collection('ruta');
+  final CollectionReference _routesCollection = FirebaseFirestore.instance 
+      .collection('ruta'); 
 
   Future<List<POI>> fetchAllPOIs() async {
     try {
@@ -59,11 +59,11 @@ class FireStoreService {
 
   Future<List<POI>> fetchRoutesPOIs(String routeId) async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('ruta')
-          .doc(routeId)
-          .collection('poi')
-          .get();
+      final querySnapshot = await FirebaseFirestore.instance 
+          .collection('ruta') 
+          .doc(routeId) 
+          .collection('poi') 
+          .get(); 
       List<POI> pois = [];
       for (var doc in querySnapshot.docs) {
         final data = doc.data();
@@ -77,6 +77,7 @@ class FireStoreService {
         pois.add(
           POI(
             id: doc.id,
+            routeId: routeId, 
             nombre: data['nombre']?.toString() ?? '',
             descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
             imagen: data['imagen']?.toString() ?? '',
@@ -300,25 +301,121 @@ class FireStoreService {
     }
   }
 
-  Future<void> addRoute(MapRoute route) {
-    return _routesCollection.add({
+  Future<void> addRoute(MapRoute route) async { 
+    final docRef = await _routesCollection.add({ 
       'nombre': route.name,
       'latitud_inicio': route.initialLatitude,
       'longitud_inicio': route.initialLongitude,
       'latitud_fin': route.finalLatitude,
       'longitud_fin': route.finalLongitude,
     });
+    if (route.pois.isNotEmpty) { 
+      await _syncRoutePOIs( 
+        routeId: docRef.id, 
+        selectedPois: route.pois, 
+      ); 
+    } 
   }
 
-  Future<void> updateRoute(MapRoute route) {
-    return _routesCollection.doc(route.id).update({
+  Future<void> updateRoute(MapRoute route) async { 
+    final docRef = _routesCollection.doc(route.id); 
+    await docRef.update({ 
       'nombre': route.name,
       'latitud_inicio': route.initialLatitude,
       'longitud_inicio': route.initialLongitude,
       'latitud_fin': route.finalLatitude,
       'longitud_fin': route.finalLongitude,
     });
+    await _syncRoutePOIs( 
+      routeId: route.id, 
+      selectedPois: route.pois, 
+    ); 
   }
+
+  Future<void> _syncRoutePOIs({ 
+    required String routeId, 
+    required List<POI> selectedPois, 
+  }) async { 
+    final poiCollection = _routesCollection 
+        .doc(routeId) 
+        .collection('poi'); 
+    final existingSnapshot = await poiCollection.get(); 
+    final existingDataById = <String, Map<String, dynamic>>{ 
+      for (final doc in existingSnapshot.docs) 
+        doc.id: Map<String, dynamic>.from( 
+          doc.data() as Map, 
+        ), 
+    }; 
+
+    final currentIds = existingDataById.keys.toSet(); 
+    final selectedIds = selectedPois.map((poi) => poi.id).toSet(); 
+
+    final idsToRemove = currentIds.difference(selectedIds); 
+    final idsToAdd = selectedIds.difference(currentIds); 
+
+    final sinAsignarCollection = 
+        _routesCollection 
+            .doc('sin_asignar') 
+            .collection('poi'); 
+
+    for (final id in idsToRemove) { 
+      final data = existingDataById[id]; 
+      if (data != null) { 
+        await sinAsignarCollection.doc(id).set(data); 
+      } 
+      await poiCollection.doc(id).delete(); 
+    } 
+
+    for (final id in idsToAdd) { 
+      final sinAsignarDoc = sinAsignarCollection.doc(id); 
+      final sinAsignarSnapshot = await sinAsignarDoc.get(); 
+
+      Map<String, dynamic>? poiData; 
+      bool removeFromSinAsignar = false; 
+      DocumentReference? sourceDocRef; 
+
+      if (sinAsignarSnapshot.exists) { 
+        poiData = Map<String, dynamic>.from( 
+          sinAsignarSnapshot.data() as Map, 
+        ); 
+        removeFromSinAsignar = true; 
+      } else { 
+        POI? selectedPoi; 
+        for (final poi in selectedPois) { 
+          if (poi.id == id) { 
+            selectedPoi = poi; 
+            break; 
+          } 
+        } 
+
+        if (selectedPoi != null && 
+            selectedPoi.routeId != null && 
+            selectedPoi.routeId!.isNotEmpty && 
+            selectedPoi.routeId != routeId) { 
+          sourceDocRef = _routesCollection 
+              .doc(selectedPoi.routeId) 
+              .collection('poi') 
+              .doc(id); 
+          final sourceSnapshot = await sourceDocRef.get(); 
+          if (sourceSnapshot.exists) { 
+            poiData = Map<String, dynamic>.from( 
+              sourceSnapshot.data() as Map, 
+            ); 
+          } 
+        } 
+      } 
+
+      if (poiData != null) { 
+        await poiCollection.doc(id).set(poiData); 
+        if (removeFromSinAsignar) { 
+          await sinAsignarDoc.delete(); 
+        } 
+        if (sourceDocRef != null) { 
+          await sourceDocRef.delete(); 
+        } 
+      } 
+    } 
+  } 
 
   Future<void> deleteRoute(String routeId) {
     return _routesCollection.doc(routeId).delete();

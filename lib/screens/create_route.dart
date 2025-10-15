@@ -35,6 +35,7 @@ class _CreateRouteState extends State<CreateRoute> {
   final TextEditingController _finalLongController = TextEditingController();
   final MultiSelectController<POI> _multiSelectController =
       MultiSelectController<POI>();
+  bool _initialPOIsApplied = false; // 🔧 agregado
 
   final Color mainColor = const Color(0xFF4D67AE);
 
@@ -94,9 +95,22 @@ class _CreateRouteState extends State<CreateRoute> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<RouteBloc, RouteState>(
-      builder: (context, state) {
-        if (state is RouteCreating) {
+    return BlocListener<RouteBloc, RouteState>( // 🔧 agregado
+      listener: (context, state) { // 🔧 agregado
+        if (state is RouteOperationSuccess) { // 🔧 agregado
+          final rootContext = widget.rootNavigatorKey.currentContext; // 🔧 agregado
+          if (rootContext != null) { // 🔧 agregado
+            BlocProvider.of<RouteBloc>( // 🔧 agregado
+              rootContext, // 🔧 agregado
+              listen: false, // 🔧 agregado
+            ).add(LoadRoute()); // 🔧 agregado
+          } // 🔧 agregado
+          context.go('/rutas'); // 🔧 agregado
+        } // 🔧 agregado
+      }, // 🔧 agregado
+      child: BlocBuilder<RouteBloc, RouteState>( // 🔧 agregado
+        builder: (context, state) {
+          if (state is RouteCreating) {
           const double kFormWidth = 500;
           const double kGutter = 24;
 
@@ -253,7 +267,8 @@ class _CreateRouteState extends State<CreateRoute> {
                                       allPOIsMap.values.toList();
 
                                   // Preseleccionar POIs si estamos editando
-                                  if (routePOIs.isNotEmpty) {
+                                  if (routePOIs.isNotEmpty &&
+                                      !_initialPOIsApplied) { // ✅ corrección
                                     WidgetsBinding.instance
                                         .addPostFrameCallback((_) {
                                       try {
@@ -264,9 +279,15 @@ class _CreateRouteState extends State<CreateRoute> {
                                                 element.value.id,
                                           ),
                                         );
-                                      } catch (_) {}
+                                      } catch (_) {} finally { // 🔧 agregado
+                                        _initialPOIsApplied = true; // 🔧 agregado
+                                      }
                                     });
                                   }
+                                  if (routePOIs.isEmpty &&
+                                      !_initialPOIsApplied) { // 🔧 agregado
+                                    _initialPOIsApplied = true; // 🔧 agregado
+                                  } // 🔧 agregado
 
                                   if (allPOIs.isEmpty) {
                                     return Padding(
@@ -330,18 +351,9 @@ class _CreateRouteState extends State<CreateRoute> {
                                       onPressed: () {
                                         if (_createRouteFormKey
                                             .currentState!
-                                            .validate()) {
-                                          // 🧩 Detecta si es edición o creación
-                                          _fnAddRoute();
-                                          final sharedBloc =
-                                              BlocProvider.of<RouteBloc>(
-                                            widget.rootNavigatorKey
-                                                .currentContext!,
-                                            listen: false,
-                                          );
-                                          sharedBloc.add(LoadRoute());
-                                          context.go('/rutas');
-                                        }
+                                            .validate()) { // ✅ corrección
+                                          _fnAddRoute(); // ✅ corrección
+                                        } // ✅ corrección
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: mainColor,
@@ -477,10 +489,11 @@ class _CreateRouteState extends State<CreateRoute> {
               ],
             ),
           );
-        } else {
-          return const Center(child: CircularProgressIndicator());
-        }
-      },
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      ), // 🔧 agregado
     );
   }
 
