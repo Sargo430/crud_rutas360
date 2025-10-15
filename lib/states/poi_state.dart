@@ -21,10 +21,9 @@ class PoiOperationSuccess extends PoiState {
   PoiOperationSuccess(this.message);
 }
 
-class PoiLoadedWithSuccess extends PoiState {
-  final List<POI> pois;
+class PoiLoadedWithSuccess extends PoiLoaded {
   final String message;
-  PoiLoadedWithSuccess(this.pois, this.message);
+  PoiLoadedWithSuccess(List<POI> pois, this.message) : super(pois);
 }
 
 class PoiError extends PoiState {

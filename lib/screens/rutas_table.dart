@@ -1,10 +1,10 @@
 import 'package:crud_rutas360/blocs/route_bloc.dart';
 import 'package:crud_rutas360/events/route_event.dart';
-import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/states/route_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:crud_rutas360/widgets/loading_message.dart';
 
 class TablaRutas extends StatefulWidget {
   const TablaRutas({super.key});
@@ -154,7 +154,7 @@ class _TablaRutasState extends State<TablaRutas> {
             ),
           );
         } else {
-          return const Center(child: CircularProgressIndicator());
+          return const LoadingMessage();
         }
       },
     );
@@ -184,3 +184,5 @@ class _TablaRutasState extends State<TablaRutas> {
     );
   }
 }
+
+

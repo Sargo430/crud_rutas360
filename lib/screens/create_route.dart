@@ -1,4 +1,4 @@
-import 'package:crud_rutas360/blocs/route_bloc.dart';
+﻿import 'package:crud_rutas360/blocs/route_bloc.dart';
 import 'package:crud_rutas360/events/route_event.dart';
 import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/models/route_model.dart';
@@ -38,6 +38,9 @@ class _CreateRouteState extends State<CreateRoute> {
 
   final Color mainColor = const Color(0xFF4D67AE);
 
+  // 🚀 Nueva propiedad: detecta si el formulario está en modo edición
+  bool get _isEditing => widget.route != null;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +50,7 @@ class _CreateRouteState extends State<CreateRoute> {
     _finalLongController.addListener(_updateFinalLatLng);
     _multiSelectController.addListener(() => setState(() {}));
 
+    // Si estamos editando, precargar los datos de la ruta existente
     if (widget.route != null) {
       _nameController.text = widget.route!.name;
       _initialLatController.text = widget.route!.initialLatitude.toString();
@@ -56,6 +60,8 @@ class _CreateRouteState extends State<CreateRoute> {
       _updateInitialLatLng();
       _updateFinalLatLng();
     }
+
+    // Cargar POIs disponibles (no asignados)
     BlocProvider.of<RouteBloc>(context).add(LoadUnasignedPOIs());
   }
 
@@ -116,21 +122,29 @@ class _CreateRouteState extends State<CreateRoute> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                "Crear Ruta",
-                                style: TextStyle(
+                              Text(
+                                _isEditing ? "Editar Ruta" : "Crear Ruta",
+                                style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
-                                "Define los puntos de inicio y fin para crear una nueva ruta",
-                                style: TextStyle(color: Colors.black54),
+                              Text(
+                                _isEditing
+                                    ? "Modifica los datos de la ruta seleccionada"
+                                    : "Define los puntos de inicio y fin para crear una nueva ruta",
+                                style: const TextStyle(color: Colors.black54),
                               ),
                               const Divider(height: 24),
 
-                              BuildSection(mainColor: mainColor, title: "Información de la Ruta", subtitle: "Nombre identificador de la ruta", child: TextFormField(
+                              // Información de la ruta
+                              BuildSection(
+                                mainColor: mainColor,
+                                title: "Información de la Ruta",
+                                subtitle:
+                                    "Nombre identificador de la ruta",
+                                child: TextFormField(
                                   controller: _nameController,
                                   decoration: _inputDecoration(
                                     label: "Nombre de la Ruta",
@@ -138,23 +152,29 @@ class _CreateRouteState extends State<CreateRoute> {
                                   ),
                                   validator: (value) =>
                                       value == null || value.isEmpty
-                                      ? 'Por favor ingresa un nombre'
-                                      : null,
-                                )),
+                                          ? 'Por favor ingresa un nombre'
+                                          : null,
+                                ),
+                              ),
                               const SizedBox(height: 20),
 
-                              BuildSection(mainColor: mainColor, title: "Punto Inicial", subtitle: "Coordenadas del punto de partida", child: Row(
+                              // Punto inicial
+                              BuildSection(
+                                mainColor: mainColor,
+                                title: "Punto Inicial",
+                                subtitle: "Coordenadas del punto de partida",
+                                child: Row(
                                   children: [
                                     Expanded(
                                       child: TextFormField(
                                         controller: _initialLatController,
                                         decoration: _inputDecoration(
-                                          label: "Latitud",
-                                        ),
+                                            label: "Latitud"),
                                         keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                            ),
+                                            const TextInputType
+                                                .numberWithOptions(
+                                          decimal: true,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -162,30 +182,36 @@ class _CreateRouteState extends State<CreateRoute> {
                                       child: TextFormField(
                                         controller: _initialLongController,
                                         decoration: _inputDecoration(
-                                          label: "Longitud",
-                                        ),
+                                            label: "Longitud"),
                                         keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                            ),
+                                            const TextInputType
+                                                .numberWithOptions(
+                                          decimal: true,
+                                        ),
                                       ),
                                     ),
                                   ],
-                                )),
+                                ),
+                              ),
                               const SizedBox(height: 20),
 
-                              BuildSection(mainColor: mainColor, title: "Punto Final", subtitle: "Coordenadas del punto de destino", child: Row(
+                              // Punto final
+                              BuildSection(
+                                mainColor: mainColor,
+                                title: "Punto Final",
+                                subtitle: "Coordenadas del punto de destino",
+                                child: Row(
                                   children: [
                                     Expanded(
                                       child: TextFormField(
                                         controller: _finalLatController,
                                         decoration: _inputDecoration(
-                                          label: "Latitud",
-                                        ),
+                                            label: "Latitud"),
                                         keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                            ),
+                                            const TextInputType
+                                                .numberWithOptions(
+                                          decimal: true,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -193,23 +219,29 @@ class _CreateRouteState extends State<CreateRoute> {
                                       child: TextFormField(
                                         controller: _finalLongController,
                                         decoration: _inputDecoration(
-                                          label: "Longitud",
-                                        ),
+                                            label: "Longitud"),
                                         keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                            ),
+                                            const TextInputType
+                                                .numberWithOptions(
+                                          decimal: true,
+                                        ),
                                       ),
                                     ),
                                   ],
-                                )),
+                                ),
+                              ),
                               const SizedBox(height: 20),
 
-                              BuildSection(mainColor: mainColor, title: "Puntos de Interés", subtitle: "Selecciona los POIs a incluir", child: (() {
-                                  // Combine POIs from route and unasigned
+                              // Puntos de interés
+                              BuildSection(
+                                mainColor: mainColor,
+                                title: "Puntos de Interés",
+                                subtitle: "Selecciona los POIs a incluir",
+                                child: (() {
                                   final routePOIs = widget.route?.pois ?? [];
                                   final unasignedPOIs = state.unasignedPOIs;
-                                  // Avoid duplicates by POI id
+
+                                  // Unir los POIs de la ruta y los no asignados
                                   final allPOIsMap = <String, POI>{};
                                   for (var poi in routePOIs) {
                                     allPOIsMap[poi.id] = poi;
@@ -217,32 +249,34 @@ class _CreateRouteState extends State<CreateRoute> {
                                   for (var poi in unasignedPOIs) {
                                     allPOIsMap[poi.id] = poi;
                                   }
-                                  final allPOIs = allPOIsMap.values.toList();
+                                  final allPOIs =
+                                      allPOIsMap.values.toList();
 
-                                  // Pre-select route POIs if editing
+                                  // Preseleccionar POIs si estamos editando
                                   if (routePOIs.isNotEmpty) {
                                     WidgetsBinding.instance
                                         .addPostFrameCallback((_) {
-                                          try {
-                                            _multiSelectController.selectWhere(
-                                              (element) => routePOIs.any(
-                                                (poi) =>
-                                                    poi.id == element.value.id,
-                                              ),
-                                            );
-                                          } catch (_) {}
-                                        });
+                                      try {
+                                        _multiSelectController.selectWhere(
+                                          (element) => routePOIs.any(
+                                            (poi) =>
+                                                poi.id ==
+                                                element.value.id,
+                                          ),
+                                        );
+                                      } catch (_) {}
+                                    });
                                   }
 
                                   if (allPOIs.isEmpty) {
                                     return Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8.0,
-                                      ),
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                              vertical: 8.0),
                                       child: Text(
                                         'No hay puntos de interés disponibles para asignar.',
                                         style: TextStyle(
-                                          color: Colors.red,
+                                          color: Colors.red[700],
                                           fontSize: 16,
                                         ),
                                       ),
@@ -257,24 +291,27 @@ class _CreateRouteState extends State<CreateRoute> {
                                             ),
                                           )
                                           .toList(),
-
-                                      controller: _multiSelectController,
+                                      controller:
+                                          _multiSelectController,
                                       enabled: true,
                                       searchEnabled: true,
                                       fieldDecoration: FieldDecoration(
                                         labelText: 'Selecciona POIs',
                                         hintText: 'Selecciona POIs',
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
                                       ),
-                                      searchDecoration: SearchFieldDecoration(
+                                      searchDecoration:
+                                          const SearchFieldDecoration(
                                         hintText: 'Buscar',
                                         border: OutlineInputBorder(),
                                       ),
                                     );
                                   }
-                                })()),
+                                })(),
+                              ),
                               const SizedBox(height: 32),
 
+                              // Botones de acción
                               Row(
                                 children: [
                                   Expanded(
@@ -282,7 +319,8 @@ class _CreateRouteState extends State<CreateRoute> {
                                       onPressed: () => context.pop(),
                                       child: Text(
                                         "Cancelar",
-                                        style: TextStyle(color: mainColor),
+                                        style:
+                                            TextStyle(color: mainColor),
                                       ),
                                     ),
                                   ),
@@ -290,34 +328,39 @@ class _CreateRouteState extends State<CreateRoute> {
                                   Expanded(
                                     child: ElevatedButton(
                                       onPressed: () {
-                                        if (_createRouteFormKey.currentState!
+                                        if (_createRouteFormKey
+                                            .currentState!
                                             .validate()) {
+                                          // 🧩 Detecta si es edición o creación
                                           _fnAddRoute();
                                           final sharedBloc =
                                               BlocProvider.of<RouteBloc>(
-                                                widget
-                                                    .rootNavigatorKey
-                                                    .currentContext!,
-                                                listen: false,
-                                              );
+                                            widget.rootNavigatorKey
+                                                .currentContext!,
+                                            listen: false,
+                                          );
                                           sharedBloc.add(LoadRoute());
                                           context.go('/rutas');
                                         }
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: mainColor,
-                                        padding: const EdgeInsets.symmetric(
+                                        padding:
+                                            const EdgeInsets.symmetric(
                                           vertical: 16,
                                         ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
+                                        shape:
+                                            RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
                                       ),
-                                      child: const Text(
-                                        "Crear Ruta",
-                                        style: TextStyle(color: Colors.white),
+                                      child: Text(
+                                        _isEditing
+                                            ? 'Actualizar ruta'
+                                            : 'Crear ruta',
+                                        style: const TextStyle(
+                                            color: Colors.white),
                                       ),
                                     ),
                                   ),
@@ -357,8 +400,7 @@ class _CreateRouteState extends State<CreateRoute> {
                           child: FlutterMap(
                             mapController: mapController,
                             options: MapOptions(
-                              initialCenter:
-                                  _initialLatLng ??
+                              initialCenter: _initialLatLng ??
                                   _finalLatLng ??
                                   LatLng(-35.6960, -71.4060),
                               initialZoom: 13,
@@ -392,7 +434,9 @@ class _CreateRouteState extends State<CreateRoute> {
                                         size: 30,
                                       ),
                                     ),
-                                  ..._multiSelectController.selectedItems.map(
+                                  ..._multiSelectController
+                                      .selectedItems
+                                      .map(
                                     (item) => Marker(
                                       point: LatLng(
                                         item.value.latitud,
@@ -414,7 +458,10 @@ class _CreateRouteState extends State<CreateRoute> {
                                 PolylineLayer(
                                   polylines: [
                                     Polyline(
-                                      points: [_initialLatLng!, _finalLatLng!],
+                                      points: [
+                                        _initialLatLng!,
+                                        _finalLatLng!
+                                      ],
                                       color: mainColor,
                                       strokeWidth: 4,
                                     ),
@@ -451,6 +498,7 @@ class _CreateRouteState extends State<CreateRoute> {
     );
   }
 
+  // 🧠 Función unificada: crea o actualiza según el modo actual
   void _fnAddRoute() {
     final name = _nameController.text.trim();
     final initialLat = _initialLatController.text.trim();
@@ -458,22 +506,23 @@ class _CreateRouteState extends State<CreateRoute> {
     final finalLat = _finalLatController.text.trim();
     final finalLong = _finalLongController.text.trim();
 
-    BlocProvider.of<RouteBloc>(context).add(
-      AddRoute(
-        MapRoute(
-          id: name,
-          initialLatitude: double.parse(initialLat),
-          initialLongitude: double.parse(initialLong),
-          finalLatitude: double.parse(finalLat),
-          finalLongitude: double.parse(finalLong),
-          name: name,
-          pois: _multiSelectController.selectedItems
-              .map((item) => item.value)
-              .toList(),
-        ),
-      ),
+    final routeBloc = BlocProvider.of<RouteBloc>(context);
+    final updatedRoute = MapRoute(
+      id: _isEditing ? widget.route!.id : name,
+      initialLatitude: double.parse(initialLat),
+      initialLongitude: double.parse(initialLong),
+      finalLatitude: double.parse(finalLat),
+      finalLongitude: double.parse(finalLong),
+      name: name,
+      pois: _multiSelectController.selectedItems
+          .map((item) => item.value)
+          .toList(),
     );
+
+    if (_isEditing) {
+      routeBloc.add(UpdateRoute(updatedRoute));
+    } else {
+      routeBloc.add(AddRoute(updatedRoute));
+    }
   }
 }
-
-

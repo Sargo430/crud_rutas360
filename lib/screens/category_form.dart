@@ -1,11 +1,13 @@
 import 'package:crud_rutas360/blocs/category_bloc.dart';
 import 'package:crud_rutas360/events/category_event.dart';
 import 'package:crud_rutas360/models/category_model.dart';
+import 'package:crud_rutas360/services/input_validators.dart';
 import 'package:crud_rutas360/states/category_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:go_router/go_router.dart';
+import 'package:crud_rutas360/widgets/loading_message.dart';
 
 class CategoryForm extends StatefulWidget {
   const CategoryForm({super.key});
@@ -39,6 +41,9 @@ class _CategoryFormState extends State<CategoryForm> {
         }
       },
       builder: (context, state) {
+        if (state is CategoryLoading) {
+          return const LoadingMessage();
+        }
         PoiCategory? category;
         if (state is CategoryFormState) {
           category = state.category;
@@ -269,8 +274,11 @@ class _CategoryFormState extends State<CategoryForm> {
                     ElevatedButton(
                       onPressed: () {
                         if (_createCategoryFormKey.currentState!.validate()) {
+                          // 🛠️ Cambio: conservamos el id original cuando se edita para que el BLoC pueda actualizar la categoría existente.
+                          final String categoryId =
+                              category?.id ?? _nameEsController.text.trim().toLowerCase();
                           final newCategory = PoiCategory(
-                            id: _nameEsController.text.trim().toLowerCase(),
+                            id: categoryId,
                             nombre: {
                               'es': _nameEsController.text.trim(),
                               'en': _nameEnController.text.trim(),
@@ -379,20 +387,21 @@ class _CategoryFormState extends State<CategoryForm> {
         Expanded(
           child: TextFormField(
             controller: controller,
+            autocorrect: true,
+            enableSuggestions: true,
             decoration: InputDecoration(
               labelText: label,
               hintText: hint,
               border: const OutlineInputBorder(),
               isDense: true,
             ),
-            validator: required
-                ? (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Campo obligatorio";
-                    }
-                    return null;
-                  }
-                : null,
+            // Validamos el texto y evitamos palabras ofensivas en cada idioma.
+            validator: (value) =>
+                InputValidators.validateTextField(
+              value,
+              emptyMessage: "Campo obligatorio",
+              isRequired: required,
+            ),
           ),
         ),
       ],
@@ -427,9 +436,6 @@ class _CategoryFormState extends State<CategoryForm> {
                   offset: Offset(0, 4),
                 ),
               ],
-            ),
-            child: const Center(
-              child: Icon(Icons.color_lens, color: Colors.white, size: 28),
             ),
           ),
         ),

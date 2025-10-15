@@ -1,13 +1,13 @@
- 
-
 import 'package:crud_rutas360/blocs/poi_bloc.dart';
 import 'package:crud_rutas360/events/poi_events.dart';
 import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/models/category_model.dart';
 import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/screens/poi_widget.dart';
+import 'package:crud_rutas360/services/input_validators.dart';
 import 'package:crud_rutas360/states/poi_state.dart';
 import 'package:crud_rutas360/widgets/build_section.dart';
+import 'package:crud_rutas360/widgets/loading_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -177,17 +177,20 @@ class _PoiFormState extends State<PoiForm> {
                                         "Nombre identificador del punto de interés",
                                     child: TextFormField(
                                       controller: _nameController,
+                                      autocorrect: true,
+                                      enableSuggestions: true,
                                       decoration: const InputDecoration(
                                         labelText:
                                             'Nombre del Punto de Interés',
                                         border: OutlineInputBorder(),
                                       ),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Por favor ingrese el nombre del punto de interés';
-                                        }
-                                        return null;
-                                      },
+                                      // Validamos nombre obligatorio evitando lenguaje ofensivo.
+                                      validator: (value) =>
+                                          InputValidators.validateTextField(
+                                        value,
+                                        emptyMessage:
+                                            'Por favor ingrese el nombre del punto de interes',
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 16),
@@ -214,19 +217,22 @@ class _PoiFormState extends State<PoiForm> {
                                             Expanded(
                                               child: TextFormField(
                                                 controller: _descEsController,
+                                                autocorrect: true,
+                                                enableSuggestions: true,
                                                 decoration: const InputDecoration(
                                                   labelText:
                                                       'Descripción en Español del Punto de Interés',
                                                   border: OutlineInputBorder(),
                                                 ),
                                                 maxLines: 3,
-                                                validator: (value) {
-                                                  if (value == null ||
-                                                      value.isEmpty) {
-                                                    return 'Por favor ingrese la descripción en español del punto de interés';
-                                                  }
-                                                  return null;
-                                                },
+                                                // Validamos longitud minima y lenguaje en la descripcion principal.
+                                                validator: (value) =>
+                                                    InputValidators.validateDescriptionField(
+                                                  value,
+                                                  isRequired: true,
+                                                  emptyMessage:
+                                                      'Por favor ingrese la descripcion en espanol del punto de interes',
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -248,12 +254,22 @@ class _PoiFormState extends State<PoiForm> {
                                             Expanded(
                                               child: TextFormField(
                                                 controller: _descEnController,
+                                                autocorrect: true,
+                                                enableSuggestions: true,
                                                 decoration: const InputDecoration(
                                                   labelText:
                                                       'Descripción en Inglés del Punto de Interés',
                                                   border: OutlineInputBorder(),
                                                 ),
                                                 maxLines: 3,
+                                                // Evitamos lenguaje ofensivo y textos muy cortos si se completa.
+                                                validator: (value) =>
+                                                    InputValidators.validateDescriptionField(
+                                                  value,
+                                                  isRequired: false,
+                                                  emptyMessage:
+                                                      'Por favor ingrese la descripcion en ingles del punto de interes',
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -275,12 +291,22 @@ class _PoiFormState extends State<PoiForm> {
                                             Expanded(
                                               child: TextFormField(
                                                 controller: _descPtController,
+                                                autocorrect: true,
+                                                enableSuggestions: true,
                                                 decoration: const InputDecoration(
                                                   labelText:
                                                       'Descripción en Portugués del Punto de Interés',
                                                   border: OutlineInputBorder(),
                                                 ),
                                                 maxLines: 3,
+                                                // Validamos entradas opcionales evitando lenguaje ofensivo.
+                                                validator: (value) =>
+                                                    InputValidators.validateDescriptionField(
+                                                  value,
+                                                  isRequired: false,
+                                                  emptyMessage:
+                                                      'Por favor ingrese la descripcion en portugues del punto de interes',
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -299,46 +325,38 @@ class _PoiFormState extends State<PoiForm> {
                                         Expanded(
                                           child: TextFormField(
                                             controller: _latController,
+                                            autocorrect: false,
+                                            enableSuggestions: false,
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                              decimal: true,
+                                              signed: true,
+                                            ),
                                             decoration: const InputDecoration(
                                               labelText: 'Latitud',
                                               border: OutlineInputBorder(),
                                             ),
-                                            validator: (value) {
-                                              if (value == null ||
-                                                  value.isEmpty) {
-                                                return 'Por favor ingrese la latitud';
-                                              }
-                                              final numValue = double.tryParse(
-                                                value,
-                                              );
-                                              if (numValue == null) {
-                                                return 'Ingresa un número válido';
-                                              }
-                                              return null;
-                                            },
+                                            // Validamos que la latitud sea numerica y dentro de Chile.
+                                            validator: InputValidators.validateLatitude,
                                           ),
                                         ),
                                         const SizedBox(width: 16),
                                         Expanded(
                                           child: TextFormField(
                                             controller: _longController,
+                                            autocorrect: false,
+                                            enableSuggestions: false,
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                              decimal: true,
+                                              signed: true,
+                                            ),
                                             decoration: const InputDecoration(
                                               labelText: 'Longitud',
                                               border: OutlineInputBorder(),
                                             ),
-                                            validator: (value) {
-                                              if (value == null ||
-                                                  value.isEmpty) {
-                                                return 'Por favor ingrese la longitud';
-                                              }
-                                              final numValue = double.tryParse(
-                                                value,
-                                              );
-                                              if (numValue == null) {
-                                                return 'Ingresa un número válido';
-                                              }
-                                              return null;
-                                            },
+                                            // Validamos que la longitud respete el rango nacional.
+                                            validator: InputValidators.validateLongitude,
                                           ),
                                         ),
                                       ],
@@ -794,7 +812,7 @@ class _PoiFormState extends State<PoiForm> {
             ),
           );
         } else {
-          return const Center(child: CircularProgressIndicator());
+          return const LoadingMessage();
         }
       },
     );
@@ -805,8 +823,8 @@ class _PoiFormState extends State<PoiForm> {
     final String descEs = _descEsController.text;
     final String descEn = _descEnController.text;
     final String descPt = _descPtController.text;
-    final double lat = double.parse(_latController.text);
-    final double long = double.parse(_longController.text);
+    final double lat = double.parse(_latController.text.replaceAll(',', '.'));
+    final double long = double.parse(_longController.text.replaceAll(',', '.'));
     final List<PoiCategory> selectedCategories = _multiSelectCategoryController
         .selectedItems
         .map((item) => item.value)
@@ -888,7 +906,20 @@ class _PoiFormState extends State<PoiForm> {
       );
 
       if (result != null) {
-        return result.files.first;
+        final selected = result.files.first;
+        // Protegemos el formulario ante imagenes mayores a 10 MB.
+        if (InputValidators.isFileTooLarge(selected)) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('La imagen supera el tamaño máximo permitido (10 MB).'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return null;
+        }
+        return selected;
       } else {
         // User canceled the picker
         return null;
@@ -899,3 +930,4 @@ class _PoiFormState extends State<PoiForm> {
     }
   }
 }
+

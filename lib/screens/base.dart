@@ -1,4 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:crud_rutas360/widgets/desktop_only_message.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sidebarx/sidebarx.dart';
@@ -40,6 +42,15 @@ class _BaseState extends State<Base> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final bool isMobilePlatform = defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+    final bool isSmallWidth = media.size.width < 720;
+    if (isMobilePlatform || isSmallWidth) {
+      // Bloqueamos dispositivos móviles mostrando un mensaje dedicado.
+      return const DesktopOnlyMessage();
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF4D67AE),

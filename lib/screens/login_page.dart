@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:crud_rutas360/widgets/desktop_only_message.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginPage extends StatefulWidget {
@@ -14,6 +16,14 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final bool isMobilePlatform = defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+    final bool isSmallWidth = media.size.width < 720;
+    if (isMobilePlatform || isSmallWidth) {
+      return const DesktopOnlyMessage();
+    }
+
     return Scaffold(
       backgroundColor: Color(0xFF4D67AE),
       body: Center(

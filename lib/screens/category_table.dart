@@ -1,10 +1,10 @@
 import 'package:crud_rutas360/blocs/category_bloc.dart';
 import 'package:crud_rutas360/events/category_event.dart';
-import 'package:crud_rutas360/models/category_model.dart';
 import 'package:crud_rutas360/states/category_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:crud_rutas360/widgets/loading_message.dart';
 
 class CategoryTable extends StatefulWidget {
   const CategoryTable({super.key});
@@ -183,7 +183,7 @@ class _CategoryTableState extends State<CategoryTable> {
             ),
           );
         } else {
-          return const Center(child: CircularProgressIndicator());
+          return const LoadingMessage();
         }
       },
     );
@@ -229,3 +229,4 @@ class _CategoryTableState extends State<CategoryTable> {
     }
   }
 }
+

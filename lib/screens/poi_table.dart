@@ -4,6 +4,7 @@ import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/states/poi_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:crud_rutas360/widgets/loading_message.dart';
 import 'package:go_router/go_router.dart';
 
 class PoiTable extends StatefulWidget {
@@ -26,7 +27,18 @@ class _PoiTableState extends State<PoiTable> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PoiBloc, PoiState>(
+    return BlocConsumer<PoiBloc, PoiState>(
+      listener: (context, state) {
+        if (state is PoiLoadedWithSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        } else if (state is PoiError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.error), backgroundColor: Colors.redAccent),
+          );
+        }
+      },
       builder: (context, state) {
         if (state is PoiLoaded || state is PoiLoadedWithSuccess) {
           final pois = state is PoiLoaded ? state.pois : (state as PoiLoadedWithSuccess).pois;
@@ -73,7 +85,7 @@ class _PoiTableState extends State<PoiTable> {
         } else if (state is PoiError) {
           return Center(child: Text('Error loading POIs: ${state.error}'));
         } else {
-          return const Center(child: CircularProgressIndicator());
+          return const LoadingMessage();
         }
       },
     );
@@ -251,3 +263,5 @@ class PoiDataTable extends StatelessWidget {
     );
   }
 }
+
+

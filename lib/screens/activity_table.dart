@@ -1,10 +1,10 @@
 import 'package:crud_rutas360/blocs/activity_bloc.dart';
 import 'package:crud_rutas360/events/activity_event.dart';
-import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/states/activity_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:crud_rutas360/widgets/loading_message.dart';
 
 class ActivityTable extends StatefulWidget {
   const ActivityTable({super.key});
@@ -22,7 +22,18 @@ class _ActivityTableState extends State<ActivityTable> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ActivityBloc, ActivityState>(
+    return BlocConsumer<ActivityBloc, ActivityState>(
+      listener: (context, state) {
+        if (state is ActivityLoadedWithSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        } else if (state is ActivityError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.error), backgroundColor: Colors.redAccent),
+          );
+        }
+      },
       builder: (context, state) {
         if (state is ActivityLoaded) {
           const double rowHeight = 56.0;
@@ -181,7 +192,7 @@ class _ActivityTableState extends State<ActivityTable> {
             ),
           );
         } else {
-          return const Center(child: CircularProgressIndicator());
+          return const LoadingMessage();
         }
       },
     );

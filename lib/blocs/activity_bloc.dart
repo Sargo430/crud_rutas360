@@ -1,4 +1,4 @@
-
+import 'dart:async';
 
 import 'package:crud_rutas360/events/activity_event.dart';
 import 'package:crud_rutas360/states/activity_state.dart';
@@ -11,6 +11,7 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
   ActivityBloc(this.fireStoreService) : super(ActivityInitial()) {
     on<LoadActivities>((event, emit) async {
       emit(ActivityLoading());
+      await Future.delayed(const Duration(milliseconds: 900));
       try {
         final activities = await fireStoreService.fetchAllActivities();
         emit(ActivityLoaded(activities));
@@ -21,10 +22,13 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
 
     on<AddActivity>((event, emit) async {
       emit(ActivityLoading());
+      await Future.delayed(const Duration(milliseconds: 900));
       try {
         await fireStoreService.addActivity(event.activity);
-        emit(ActivityOperationSuccess("Actividad añadida con éxito"));
-        add(LoadActivities());
+        final activities = await fireStoreService.fetchAllActivities();
+        emit(
+          ActivityLoadedWithSuccess(activities, 'Actividad agregada con exito'),
+        );
       } catch (e) {
         emit(ActivityError(e.toString()));
       }
@@ -32,10 +36,16 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
 
     on<UpdateActivity>((event, emit) async {
       emit(ActivityLoading());
+      await Future.delayed(const Duration(milliseconds: 900));
       try {
         await fireStoreService.updateActivity(event.activity);
-        emit(ActivityOperationSuccess("Actividad actualizada con éxito"));
-        add(LoadActivities());
+        final activities = await fireStoreService.fetchAllActivities();
+        emit(
+          ActivityLoadedWithSuccess(
+            activities,
+            'Actividad actualizada con exito',
+          ),
+        );
       } catch (e) {
         emit(ActivityError(e.toString()));
       }
@@ -43,14 +53,21 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
 
     on<DeleteActivity>((event, emit) async {
       emit(ActivityLoading());
+      await Future.delayed(const Duration(milliseconds: 900));
       try {
         await fireStoreService.deleteActivity(event.activityId);
-        emit(ActivityOperationSuccess("Actividad eliminada con éxito"));
-        add(LoadActivities());
+        final activities = await fireStoreService.fetchAllActivities();
+        emit(
+          ActivityLoadedWithSuccess(
+            activities,
+            'Actividad eliminada con exito',
+          ),
+        );
       } catch (e) {
         emit(ActivityError(e.toString()));
       }
-    },);
+    });
+
     on<SelectActivity>((event, emit) {
       emit(ActivityFormState(activity: event.activity));
     });

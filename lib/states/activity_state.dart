@@ -11,6 +11,12 @@ class ActivityLoaded extends ActivityState {
   ActivityLoaded(this.activities);
 }
 
+class ActivityLoadedWithSuccess extends ActivityLoaded {
+  final String message;
+  ActivityLoadedWithSuccess(List<Activity> activities, this.message)
+      : super(activities);
+}
+
 class ActivityOperationSuccess extends ActivityState {
   final String message;
   ActivityOperationSuccess(this.message);

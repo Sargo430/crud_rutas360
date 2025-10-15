@@ -1,11 +1,13 @@
 import 'package:crud_rutas360/blocs/activity_bloc.dart';
 import 'package:crud_rutas360/events/activity_event.dart';
 import 'package:crud_rutas360/models/activity_model.dart';
+import 'package:crud_rutas360/services/input_validators.dart';
 import 'package:crud_rutas360/states/activity_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:go_router/go_router.dart';
+import 'package:crud_rutas360/widgets/loading_message.dart';
 
 class ActivityForm extends StatefulWidget {
   const ActivityForm({super.key});
@@ -33,12 +35,18 @@ class _ActivityFormState extends State<ActivityForm> {
   Widget build(BuildContext context) {
     return BlocConsumer<ActivityBloc, ActivityState>(
       listener: (context, state) {
-        if (state is ActivityOperationSuccess) {
+        if (state is ActivityLoadedWithSuccess) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(state.message)));
+        } else if (state is ActivityOperationSuccess) {
           ScaffoldMessenger.of(context)
               .showSnackBar(SnackBar(content: Text(state.message)));
         }
       },
       builder: (context, state) {
+        if (state is ActivityLoading) {
+          return const LoadingMessage();
+        }
         Activity? activity;
         if (state is ActivityFormState) {
           activity = state.activity;
@@ -226,7 +234,7 @@ class _ActivityFormState extends State<ActivityForm> {
 
                 const SizedBox(height: 32),
 
-                // ✅ Botones alineados a la derecha, como en CategoryForm
+                // Botones alineados a la derecha, como en CategoryForm
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -241,8 +249,11 @@ class _ActivityFormState extends State<ActivityForm> {
                     ElevatedButton(
                       onPressed: () {
                         if (_createActivityFormKey.currentState!.validate()) {
+                          // 🛠️ Cambio: usamos el id existente en modo edición para que el flujo de actualización funcione correctamente.
+                          final String activityId =
+                              activity?.id ?? _nameEsController.text.trim().toLowerCase();
                           final newActivity = Activity(
-                            id: _nameEsController.text.trim().toLowerCase(),
+                            id: activityId,
                             nombre: {
                               'es': _nameEsController.text.trim(),
                               'en': _nameEnController.text.trim(),
@@ -335,16 +346,21 @@ class _ActivityFormState extends State<ActivityForm> {
         Expanded(
           child: TextFormField(
             controller: controller,
+            autocorrect: true,
+            enableSuggestions: true,
             decoration: InputDecoration(
               labelText: label,
               hintText: hint,
               border: const OutlineInputBorder(),
               isDense: true,
             ),
-            validator: required
-                ? (value) =>
-                    (value == null || value.isEmpty) ? "Campo obligatorio" : null
-                : null,
+            // Validamos texto y evitamos palabras ofensivas incluso en campos opcionales.
+            validator: (value) =>
+                InputValidators.validateTextField(
+              value,
+              emptyMessage: "Campo obligatorio",
+              isRequired: required,
+            ),
           ),
         ),
       ],
