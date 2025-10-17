@@ -3,6 +3,7 @@ import 'package:crud_rutas360/events/route_event.dart';
 import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/states/route_state.dart';
+import 'package:crud_rutas360/services/input_validators.dart';
 import 'package:crud_rutas360/widgets/build_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -180,14 +181,18 @@ class _CreateRouteState extends State<CreateRoute> {
                                     "Nombre identificador de la ruta",
                                 child: TextFormField(
                                   controller: _nameController,
-                                  decoration: _inputDecoration(
-                                    label: "Nombre de la Ruta",
-                                    hint: "Ej: Ruta Centro - Norte",
+                                  autocorrect: true,
+                                  enableSuggestions: true,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Nombre de la Ruta',
+                                    border: OutlineInputBorder(),
                                   ),
                                   validator: (value) =>
-                                      value == null || value.isEmpty
-                                          ? 'Por favor ingresa un nombre'
-                                          : null,
+                                      InputValidators.validateTextField(
+                                    value,
+                                    emptyMessage:
+                                        'Por favor ingresa un nombre',
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 20),
@@ -202,26 +207,40 @@ class _CreateRouteState extends State<CreateRoute> {
                                     Expanded(
                                       child: TextFormField(
                                         controller: _initialLatController,
-                                        decoration: _inputDecoration(
-                                            label: "Latitud"),
+                                        autocorrect: false,
+                                        enableSuggestions: false,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Latitud',
+                                          border: OutlineInputBorder(),
+                                        ),
                                         keyboardType:
                                             const TextInputType
                                                 .numberWithOptions(
                                           decimal: true,
+                                          signed: true,
                                         ),
+                                        validator:
+                                            InputValidators.validateLatitude,
                                       ),
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: TextFormField(
                                         controller: _initialLongController,
-                                        decoration: _inputDecoration(
-                                            label: "Longitud"),
+                                        autocorrect: false,
+                                        enableSuggestions: false,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Longitud',
+                                          border: OutlineInputBorder(),
+                                        ),
                                         keyboardType:
                                             const TextInputType
                                                 .numberWithOptions(
                                           decimal: true,
+                                          signed: true,
                                         ),
+                                        validator:
+                                            InputValidators.validateLongitude,
                                       ),
                                     ),
                                   ],
@@ -239,26 +258,40 @@ class _CreateRouteState extends State<CreateRoute> {
                                     Expanded(
                                       child: TextFormField(
                                         controller: _finalLatController,
-                                        decoration: _inputDecoration(
-                                            label: "Latitud"),
+                                        autocorrect: false,
+                                        enableSuggestions: false,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Latitud',
+                                          border: OutlineInputBorder(),
+                                        ),
                                         keyboardType:
                                             const TextInputType
                                                 .numberWithOptions(
                                           decimal: true,
+                                          signed: true,
                                         ),
+                                        validator:
+                                            InputValidators.validateLatitude,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: TextFormField(
                                         controller: _finalLongController,
-                                        decoration: _inputDecoration(
-                                            label: "Longitud"),
+                                        autocorrect: false,
+                                        enableSuggestions: false,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Longitud',
+                                          border: OutlineInputBorder(),
+                                        ),
                                         keyboardType:
                                             const TextInputType
                                                 .numberWithOptions(
                                           decimal: true,
+                                          signed: true,
                                         ),
+                                        validator:
+                                            InputValidators.validateLongitude,
                                       ),
                                     ),
                                   ],
@@ -514,20 +547,6 @@ class _CreateRouteState extends State<CreateRoute> {
           }
         },
       ), // 🔧 agregado
-    );
-  }
-
-  InputDecoration _inputDecoration({required String label, String? hint}) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: mainColor, width: 2),
-      ),
     );
   }
 
