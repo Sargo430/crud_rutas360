@@ -16,8 +16,12 @@ class TablaRutas extends StatefulWidget {
 class _TablaRutasState extends State<TablaRutas> {
   @override
   void initState() {
-    BlocProvider.of<RouteBloc>(context).add(LoadRoute());
     super.initState();
+    final bloc = context.read<RouteBloc>();
+    if (bloc.state is! RouteLoaded && bloc.state is! RouteLoading) {
+      // OPTIMIZACION: evitamos recargar rutas si ya existe una peticion en curso o datos listos.
+      bloc.add(LoadRoute());
+    }
   }
 
   @override

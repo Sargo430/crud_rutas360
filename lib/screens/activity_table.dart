@@ -16,8 +16,12 @@ class ActivityTable extends StatefulWidget {
 class _ActivityTableState extends State<ActivityTable> {
   @override
   void initState() {
-    BlocProvider.of<ActivityBloc>(context).add(LoadActivities());
     super.initState();
+    final bloc = context.read<ActivityBloc>();
+    if (bloc.state is! ActivityLoaded && bloc.state is! ActivityLoading) {
+      // OPTIMIZACION: prevenimos solicitudes redundantes cuando ya se tienen datos cargados.
+      bloc.add(LoadActivities());
+    }
   }
 
   @override

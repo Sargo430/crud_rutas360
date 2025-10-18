@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:crud_rutas360/events/poi_events.dart';
 import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/models/category_model.dart';
@@ -11,9 +10,9 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
   final FireStoreService fireStoreService;
 
   PoiBloc(this.fireStoreService) : super(PoiInitial()) {
+    // OPTIMIZACION: se elimina la espera artificial para entregar la data apenas responda Firestore.
     on<LoadPOIs>((event, emit) async {
       emit(PoiLoading());
-      await Future.delayed(const Duration(milliseconds: 900));
       try {
         final pois = await fireStoreService.fetchAllPOIs();
         emit(PoiLoaded(pois));
@@ -24,7 +23,6 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
 
     on<AddPOI>((event, emit) async {
       emit(PoiLoading());
-      await Future.delayed(const Duration(milliseconds: 900));
       try {
         await fireStoreService.addPOI(
           event.poi,
@@ -41,7 +39,6 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
 
     on<UpdatePOI>((event, emit) async {
       emit(PoiLoading());
-      await Future.delayed(const Duration(milliseconds: 900));
       try {
         await fireStoreService.updatePOI(
           event.poi,
@@ -58,7 +55,6 @@ class PoiBloc extends Bloc<POIEvent, PoiState> {
 
     on<DeletePOI>((event, emit) async {
       emit(PoiLoading());
-      await Future.delayed(const Duration(milliseconds: 900));
       try {
         await fireStoreService.deletePOI(event.poiId, event.routeId);
         final pois = await fireStoreService.fetchAllPOIs();

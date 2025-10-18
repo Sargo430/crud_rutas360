@@ -10,47 +10,98 @@ import 'package:file_picker/file_picker.dart';
 class FireStoreService {
   final CollectionReference _routesCollection = FirebaseFirestore.instance 
       .collection('ruta'); 
+  // OPTIMIZACION: caches en memoria para reutilizar categorias y actividades ya consultadas.
+  final Map<String, PoiCategory> _categoryCache = {};
+  final Map<String, Activity> _activityCache = {};
+  // OPTIMIZACION: listas completas cacheadas para evitar reconsultas globales.
+  List<PoiCategory>? _cachedCategoryList;
+  List<Activity>? _cachedActivityList;
 
   Future<List<POI>> fetchAllPOIs() async {
     try {
       final routeQuerySnapshot = await FirebaseFirestore.instance
           .collection('ruta')
           .get();
-      List<POI> pois = [];
+      // OPTIMIZACION: preparamos estructuras temporales para resolver relaciones sin disparar consultas por POI.
+      final List<Map<String, dynamic>> rawPois = [];
+      final Set<String> categoryIds = {};
+      final Set<String> activityIds = {};
+
       for (var routeDoc in routeQuerySnapshot.docs) {
+        final routeData = routeDoc.data();
         final poiCollection = await _routesCollection
             .doc(routeDoc.id)
             .collection('poi')
             .get();
+
         for (var doc in poiCollection.docs) {
-          
-            final data = doc.data();
-            
-            final categorias = await fetchCategories(
-              List<String>.from((data['categoria'] ?? ['vacio'])),
-            );
-            final actividades = await fetchActivities(
-              List<String>.from((data['actividades'] ?? ['vacio'])),
-            );
-            pois.add(
-              POI(
-                id: doc.id,
-                routeId: routeDoc.id,
-                routeName: routeDoc.data()['nombre']?.toString() ?? '',
-                nombre: data['nombre']?.toString() ?? '',
-                descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
-                imagen: data['imagen']?.toString() ?? '',
-                latitud: (data['latitud'] ?? 0).toDouble(),
-                longitud: (data['longitud'] ?? 0).toDouble(),
-                categorias: categorias,
-                actividades: actividades,
-                vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
-              ),
-            );
-          
+          final data = doc.data();
+          final categoriasIds =
+              List<String>.from((data['categoria'] ?? const <String>[]));
+          final actividadesIds =
+              List<String>.from((data['actividades'] ?? const <String>[]));
+
+          categoryIds.addAll(
+            categoriasIds.where(
+              (id) => id.isNotEmpty && id != 'vacio',
+            ),
+          );
+          activityIds.addAll(
+            actividadesIds.where(
+              (id) => id.isNotEmpty && id != 'vacio',
+            ),
+          );
+
+          rawPois.add({
+            'id': doc.id,
+            'routeId': routeDoc.id,
+            'routeName': routeData['nombre']?.toString() ?? '',
+            'data': data,
+            'categoriaIds': categoriasIds,
+            'actividadIds': actividadesIds,
+          });
         }
       }
-      return pois;
+
+      if (rawPois.isEmpty) {
+        return [];
+      }
+
+      // OPTIMIZACION: resolvemos los catalogos pendientes en una sola llamada por tipo.
+      final categoriesFuture = _fetchCategoryMap(categoryIds);
+      final activitiesFuture = _fetchActivityMap(activityIds);
+      final categoriesById = await categoriesFuture;
+      final activitiesById = await activitiesFuture;
+
+      return rawPois.map((raw) {
+        final data = raw['data'] as Map<String, dynamic>;
+        final categoriasIds =
+            List<String>.from(raw['categoriaIds'] as List<String>);
+        final actividadesIds =
+            List<String>.from(raw['actividadIds'] as List<String>);
+        final categorias = categoriasIds
+            .where((id) => categoriesById.containsKey(id))
+            .map((id) => categoriesById[id]!)
+            .toList();
+        final actividades = actividadesIds
+            .where((id) => activitiesById.containsKey(id))
+            .map((id) => activitiesById[id]!)
+            .toList();
+
+        return POI(
+          id: raw['id'] as String,
+          routeId: raw['routeId'] as String,
+          routeName: raw['routeName'] as String,
+          nombre: data['nombre']?.toString() ?? '',
+          descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
+          imagen: data['imagen']?.toString() ?? '',
+          latitud: (data['latitud'] ?? 0).toDouble(),
+          longitud: (data['longitud'] ?? 0).toDouble(),
+          categorias: categorias,
+          actividades: actividades,
+          vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
+        );
+      }).toList();
     } catch (e) {
   
       throw Exception('Error fetching POIs: $e');
@@ -63,33 +114,76 @@ class FireStoreService {
           .collection('ruta') 
           .doc(routeId) 
           .collection('poi') 
-          .get(); 
-      List<POI> pois = [];
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        return [];
+      }
+
+      final rawPois = <Map<String, dynamic>>[];
+      // OPTIMIZACION: acumulamos los IDs necesarios para resolver catalogos con una sola consulta.
+      final Set<String> categoryIds = {};
+      final Set<String> activityIds = {};
+
       for (var doc in querySnapshot.docs) {
         final data = doc.data();
+        final categoriasIds =
+            List<String>.from((data['categoria'] ?? const <String>[]));
+        final actividadesIds =
+            List<String>.from((data['actividades'] ?? const <String>[]));
 
-        final categorias = await fetchCategories(
-          List<String>.from((data['categoria'] ?? ['vacio'])),
-        );
-        final actividades = await fetchActivities(
-          List<String>.from((data['actividades'] ?? ['vacio'])),
-        );
-        pois.add(
-          POI(
-            id: doc.id,
-            routeId: routeId, 
-            nombre: data['nombre']?.toString() ?? '',
-            descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
-            imagen: data['imagen']?.toString() ?? '',
-            latitud: (data['latitud'] ?? 0).toDouble(),
-            longitud: (data['longitud'] ?? 0).toDouble(),
-            categorias: categorias,
-            actividades: actividades,
-            vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
+        categoryIds.addAll(
+          categoriasIds.where(
+            (id) => id.isNotEmpty && id != 'vacio',
           ),
         );
+        activityIds.addAll(
+          actividadesIds.where(
+            (id) => id.isNotEmpty && id != 'vacio',
+          ),
+        );
+
+        rawPois.add({
+          'id': doc.id,
+          'data': data,
+          'categoriaIds': categoriasIds,
+          'actividadIds': actividadesIds,
+        });
       }
-      return pois;
+
+      final categoriesFuture = _fetchCategoryMap(categoryIds);
+      final activitiesFuture = _fetchActivityMap(activityIds);
+      final categoriesById = await categoriesFuture;
+      final activitiesById = await activitiesFuture;
+
+      return rawPois.map((raw) {
+        final data = raw['data'] as Map<String, dynamic>;
+        final categoriasIds =
+            List<String>.from(raw['categoriaIds'] as List<String>);
+        final actividadesIds =
+            List<String>.from(raw['actividadIds'] as List<String>);
+        final categorias = categoriasIds
+            .where((id) => categoriesById.containsKey(id))
+            .map((id) => categoriesById[id]!)
+            .toList();
+        final actividades = actividadesIds
+            .where((id) => activitiesById.containsKey(id))
+            .map((id) => activitiesById[id]!)
+            .toList();
+
+        return POI(
+          id: raw['id'] as String,
+          routeId: routeId,
+          nombre: data['nombre']?.toString() ?? '',
+          descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
+          imagen: data['imagen']?.toString() ?? '',
+          latitud: (data['latitud'] ?? 0).toDouble(),
+          longitud: (data['longitud'] ?? 0).toDouble(),
+          categorias: categorias,
+          actividades: actividades,
+          vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
+        );
+      }).toList();
     } catch (e) {
       throw Exception('Error fetching POIs: $e');
     }
@@ -275,14 +369,16 @@ class FireStoreService {
       final querySnapshot = querySnapshotFull.docs.where(
         (doc) => doc.id.toString() != "sin_asignar",
       );
-      List<MapRoute> routes = [];
+      final docs = querySnapshot.toList();
+      // OPTIMIZACION: resolvemos los POI de cada ruta en paralelo para evitar n llamadas secuenciales.
+      final poiFutures = docs.map((doc) => fetchRoutesPOIs(doc.id)).toList();
+      final poisPerRoute = await Future.wait(poiFutures);
 
-      for (var doc in querySnapshot) {
+      final List<MapRoute> routes = [];
+      for (var i = 0; i < docs.length; i++) {
+        final doc = docs[i];
         final data = doc.data() as Map<String, dynamic>;
-        final pois = await fetchRoutesPOIs(
-          doc.id,
-        ); // await para obtener la lista real
-
+        final pois = poisPerRoute[i];
         routes.add(
           MapRoute(
             id: doc.id,
@@ -422,12 +518,16 @@ class FireStoreService {
   }
 
   Future<List<PoiCategory>> fetchAllCategories() async {
+    if (_cachedCategoryList != null) {
+      // OPTIMIZACION: devolvemos una copia de la cache para evitar reconsultas completas.
+      return List<PoiCategory>.from(_cachedCategoryList!);
+    }
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('categorias')
           .get();
 
-      return querySnapshot.docs.map((doc) {
+      final categories = querySnapshot.docs.map((doc) {
         final data = doc.data();
         return PoiCategory(
           id: doc.id,
@@ -436,13 +536,19 @@ class FireStoreService {
           textColor: data['text_color']?.toString() ?? '',
         );
       }).toList();
+      // OPTIMIZACION: persistimos los resultados en cache para reutilizarlos en futuras lecturas.
+      for (final category in categories) {
+        _categoryCache[category.id] = category;
+      }
+      _cachedCategoryList = categories;
+      return List<PoiCategory>.from(categories);
     } catch (e) {
       throw Exception('Error fetching Categories: $e');
     }
   }
 
-  Future<void> addCategory(PoiCategory category) {
-    return FirebaseFirestore.instance
+  Future<void> addCategory(PoiCategory category) async {
+    await FirebaseFirestore.instance
         .collection('categorias')
         .doc(category.id)
         .set({
@@ -450,10 +556,13 @@ class FireStoreService {
           'background_color': category.backgroundColor,
           'text_color': category.textColor,
         });
+    // OPTIMIZACION: actualizamos la cache tras mutar la coleccion.
+    _cachedCategoryList = null;
+    _categoryCache[category.id] = category;
   }
 
-  Future<void> updateCategory(PoiCategory category) {
-    return FirebaseFirestore.instance
+  Future<void> updateCategory(PoiCategory category) async {
+    await FirebaseFirestore.instance
         .collection('categorias')
         .doc(category.id)
         .update({
@@ -461,48 +570,82 @@ class FireStoreService {
           'background_color': category.backgroundColor,
           'text_color': category.textColor,
         });
+    // OPTIMIZACION: sincronizamos la cache con los nuevos datos.
+    _cachedCategoryList = null;
+    _categoryCache[category.id] = category;
   }
 
-  Future<void> deleteCategory(String categoryId) {
-    return FirebaseFirestore.instance
+  Future<void> deleteCategory(String categoryId) async {
+    await FirebaseFirestore.instance
         .collection('categorias')
         .doc(categoryId)
         .delete();
+    // OPTIMIZACION: removemos la entrada cacheada para evitar devolver datos obsoletos.
+    _cachedCategoryList = null;
+    _categoryCache.remove(categoryId);
   }
 
   Future<List<PoiCategory>> fetchCategories(List<String> list) async {
     try {
-      // Return empty list if no categories to fetch
       if (list.isEmpty || (list.length == 1 && list.first == 'vacio')) {
         return [];
       }
 
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('categorias')
-          .where(FieldPath.documentId, whereIn: list)
-          .get();
+      final filtered = list
+          .where((id) => id.isNotEmpty && id != 'vacio')
+          .toList();
+      if (filtered.isEmpty) {
+        return [];
+      }
 
-      return querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        return PoiCategory(
-          id: doc.id,
-          nombre: Map<String, dynamic>.from(data['nombre'] ?? {}),
-          backgroundColor: data['background_color']?.toString() ?? '',
-          textColor: data['text_color']?.toString() ?? '',
-        );
-      }).toList();
+      final missing = filtered
+          .where((id) => !_categoryCache.containsKey(id))
+          .toList();
+
+      if (missing.isNotEmpty) {
+        const int chunkSize = 10;
+        for (var i = 0; i < missing.length; i += chunkSize) {
+          final end = (i + chunkSize) > missing.length ? missing.length : i + chunkSize;
+          final chunk = missing.sublist(i, end);
+          final querySnapshot = await FirebaseFirestore.instance
+              .collection('categorias')
+              .where(FieldPath.documentId, whereIn: chunk)
+              .get();
+
+          for (var doc in querySnapshot.docs) {
+            final data = doc.data();
+            final category = PoiCategory(
+              id: doc.id,
+              nombre: Map<String, dynamic>.from(data['nombre'] ?? {}),
+              backgroundColor: data['background_color']?.toString() ?? '',
+              textColor: data['text_color']?.toString() ?? '',
+            );
+            // OPTIMIZACION: guardamos cada resultado intermedio en cache.
+            _categoryCache[category.id] = category;
+          }
+        }
+      }
+
+      return filtered
+          .where((id) => _categoryCache.containsKey(id))
+          .map((id) => _categoryCache[id]!)
+          .toList();
     } catch (e) {
       throw Exception('Error fetching Categories: $e');
     }
   }
 
   Future<List<Activity>> fetchAllActivities() async {
+    if (_cachedActivityList != null) {
+      // OPTIMIZACION: reutilizamos la lista cacheada para evitar lecturas completas.
+      return List<Activity>.from(_cachedActivityList!);
+    }
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('actividades')
           .get();
 
-      return querySnapshot.docs.map((doc) {
+      final activities = querySnapshot.docs.map((doc) {
         final data = doc.data();
         return Activity(
           id: doc.id,
@@ -511,13 +654,18 @@ class FireStoreService {
           textColor: data['text_color']?.toString() ?? '',
         );
       }).toList();
+      for (final activity in activities) {
+        _activityCache[activity.id] = activity;
+      }
+      _cachedActivityList = activities;
+      return List<Activity>.from(activities);
     } catch (e) {
       throw Exception('Error fetching Actividades: $e');
     }
   }
 
-  Future<void> addActivity(Activity activity) {
-    return FirebaseFirestore.instance
+  Future<void> addActivity(Activity activity) async {
+    await FirebaseFirestore.instance
         .collection('actividades')
         .doc(activity.id)
         .set({
@@ -525,10 +673,13 @@ class FireStoreService {
           'background_color': activity.backgroundColor,
           'text_color': activity.textColor,
         });
+    // OPTIMIZACION: invalidamos la cache para que la proxima consulta use los nuevos datos.
+    _cachedActivityList = null;
+    _activityCache[activity.id] = activity;
   }
 
-  Future<void> updateActivity(Activity activity) {
-    return FirebaseFirestore.instance
+  Future<void> updateActivity(Activity activity) async {
+    await FirebaseFirestore.instance
         .collection('actividades')
         .doc(activity.id)
         .update({
@@ -536,39 +687,101 @@ class FireStoreService {
           'background_color': activity.backgroundColor,
           'text_color': activity.textColor,
         });
+    // OPTIMIZACION: refrescamos la entrada cacheada tras la actualizacion.
+    _cachedActivityList = null;
+    _activityCache[activity.id] = activity;
   }
 
-  Future<void> deleteActivity(String activityId) {
-    return FirebaseFirestore.instance
+  Future<void> deleteActivity(String activityId) async {
+    await FirebaseFirestore.instance
         .collection('actividades')
         .doc(activityId)
         .delete();
+    // OPTIMIZACION: eliminamos la entrada correspondiente para no servir datos obsoletos.
+    _cachedActivityList = null;
+    _activityCache.remove(activityId);
   }
 
   Future<List<Activity>> fetchActivities(List<String> list) async {
     try {
-      // Return empty list if no activities to fetch
       if (list.isEmpty || (list.length == 1 && list.first == 'vacio')) {
         return [];
       }
 
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('actividades')
-          .where(FieldPath.documentId, whereIn: list)
-          .get();
+      final filtered = list
+          .where((id) => id.isNotEmpty && id != 'vacio')
+          .toList();
+      if (filtered.isEmpty) {
+        return [];
+      }
 
-      return querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        return Activity(
-          id: doc.id,
-          nombre: Map<String, dynamic>.from(data['nombre'] ?? {}),
-          backgroundColor: data['background_color']?.toString() ?? '',
-          textColor: data['text_color']?.toString() ?? '',
-        );
-      }).toList();
+      final missing = filtered
+          .where((id) => !_activityCache.containsKey(id))
+          .toList();
+
+      if (missing.isNotEmpty) {
+        const int chunkSize = 10;
+        for (var i = 0; i < missing.length; i += chunkSize) {
+          final end = (i + chunkSize) > missing.length ? missing.length : i + chunkSize;
+          final chunk = missing.sublist(i, end);
+          final querySnapshot = await FirebaseFirestore.instance
+              .collection('actividades')
+              .where(FieldPath.documentId, whereIn: chunk)
+              .get();
+
+          for (var doc in querySnapshot.docs) {
+            final data = doc.data();
+            final activity = Activity(
+              id: doc.id,
+              nombre: Map<String, dynamic>.from(data['nombre'] ?? {}),
+              backgroundColor: data['background_color']?.toString() ?? '',
+              textColor: data['text_color']?.toString() ?? '',
+            );
+            // OPTIMIZACION: guardamos en cache los resultados del lote solicitado.
+            _activityCache[activity.id] = activity;
+          }
+        }
+      }
+
+      return filtered
+          .where((id) => _activityCache.containsKey(id))
+          .map((id) => _activityCache[id]!)
+          .toList();
     } catch (e) {
       throw Exception('Error fetching Activities: $e');
     }
+  }
+
+  Future<Map<String, PoiCategory>> _fetchCategoryMap(
+    Set<String> ids,
+  ) async {
+    final filtered = ids
+        .where((id) => id.isNotEmpty && id != 'vacio')
+        .toList();
+    if (filtered.isEmpty) {
+      return {};
+    }
+
+    final categories = await fetchCategories(filtered);
+    return {
+      for (final category in categories) category.id: category,
+    };
+  }
+
+  Future<Map<String, Activity>> _fetchActivityMap(
+    Set<String> ids,
+  ) async {
+    final filtered = ids
+        .where((id) => id.isNotEmpty && id != 'vacio')
+        .toList();
+    if (filtered.isEmpty) {
+      return {};
+    }
+
+    final activities = await fetchActivities(filtered);
+    return {
+      for (final activity in activities) activity.id: activity,
+    };
   }
 
   Future<List<MapRoute>> fetchAllRoutes() async {

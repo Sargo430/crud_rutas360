@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:crud_rutas360/events/activity_event.dart';
 import 'package:crud_rutas360/states/activity_state.dart';
 import 'package:crud_rutas360/services/firestore_service.dart';
@@ -9,9 +7,9 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
   final FireStoreService fireStoreService;
 
   ActivityBloc(this.fireStoreService) : super(ActivityInitial()) {
+    // OPTIMIZACION: evitamos el retardo artificial para mostrar los datos apenas esten disponibles.
     on<LoadActivities>((event, emit) async {
       emit(ActivityLoading());
-      await Future.delayed(const Duration(milliseconds: 900));
       try {
         final activities = await fireStoreService.fetchAllActivities();
         emit(ActivityLoaded(activities));
@@ -22,7 +20,6 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
 
     on<AddActivity>((event, emit) async {
       emit(ActivityLoading());
-      await Future.delayed(const Duration(milliseconds: 900));
       try {
         await fireStoreService.addActivity(event.activity);
         final activities = await fireStoreService.fetchAllActivities();
@@ -36,7 +33,6 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
 
     on<UpdateActivity>((event, emit) async {
       emit(ActivityLoading());
-      await Future.delayed(const Duration(milliseconds: 900));
       try {
         await fireStoreService.updateActivity(event.activity);
         final activities = await fireStoreService.fetchAllActivities();
@@ -53,7 +49,6 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
 
     on<DeleteActivity>((event, emit) async {
       emit(ActivityLoading());
-      await Future.delayed(const Duration(milliseconds: 900));
       try {
         await fireStoreService.deleteActivity(event.activityId);
         final activities = await fireStoreService.fetchAllActivities();

@@ -16,8 +16,12 @@ class CategoryTable extends StatefulWidget {
 class _CategoryTableState extends State<CategoryTable> {
   @override
   void initState() {
-    BlocProvider.of<CategoryBloc>(context).add(LoadCategories());
     super.initState();
+    final bloc = context.read<CategoryBloc>();
+    if (bloc.state is! CategoryLoaded && bloc.state is! CategoryLoading) {
+      // OPTIMIZACION: disparamos la carga solo si no existen datos o una peticion activa.
+      bloc.add(LoadCategories());
+    }
   }
 
   @override

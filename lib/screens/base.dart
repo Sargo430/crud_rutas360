@@ -6,6 +6,10 @@ import 'package:crud_rutas360/events/activity_event.dart';
 import 'package:crud_rutas360/events/category_event.dart';
 import 'package:crud_rutas360/events/poi_events.dart';
 import 'package:crud_rutas360/events/route_event.dart';
+import 'package:crud_rutas360/states/activity_state.dart';
+import 'package:crud_rutas360/states/category_state.dart';
+import 'package:crud_rutas360/states/poi_state.dart';
+import 'package:crud_rutas360/states/route_state.dart';
 import 'package:crud_rutas360/widgets/desktop_only_message.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -47,16 +51,41 @@ class _BaseState extends State<Base> {
     //  Ajuste: se emiten los eventos de carga para restablecer el estado base de cada sección.
     switch (index) {
       case 1:
-        context.read<RouteBloc>().add(LoadRoute());
+        final routeBloc = context.read<RouteBloc>();
+        final routeState = routeBloc.state;
+        if (routeState is! RouteLoaded && routeState is! RouteLoading) {
+          // OPTIMIZACION: evitamos consultas redundantes cuando ya se cuenta con datos de rutas.
+          routeBloc.add(LoadRoute());
+        }
         break;
       case 2:
-        context.read<PoiBloc>().add(LoadPOIs());
+        final poiBloc = context.read<PoiBloc>();
+        final poiState = poiBloc.state;
+        if (poiState is! PoiLoaded &&
+            poiState is! PoiLoadedWithSuccess &&
+            poiState is! PoiLoading) {
+          // OPTIMIZACION: solicitamos la lista de POI solo si no esta disponible o cargando.
+          poiBloc.add(LoadPOIs());
+        }
         break;
       case 3:
-        context.read<CategoryBloc>().add(LoadCategories());
+        final categoryBloc = context.read<CategoryBloc>();
+        final categoryState = categoryBloc.state;
+        if (categoryState is! CategoryLoaded &&
+            categoryState is! CategoryLoading) {
+          // OPTIMIZACION: pedimos categorias unicamente cuando no hay datos activos.
+          categoryBloc.add(LoadCategories());
+        }
         break;
       case 4:
-        context.read<ActivityBloc>().add(LoadActivities());
+        final activityBloc = context.read<ActivityBloc>();
+        final activityState = activityBloc.state;
+        if (activityState is! ActivityLoaded &&
+            activityState is! ActivityLoading &&
+            activityState is! ActivityLoadedWithSuccess) {
+          // OPTIMIZACION: reducimos llamadas a Firestore reutilizando las actividades ya cargadas.
+          activityBloc.add(LoadActivities());
+        }
         break;
     }
   }
