@@ -6,7 +6,6 @@ import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/screens/poi_widget.dart';
 import 'package:crud_rutas360/services/input_validators.dart';
 import 'package:crud_rutas360/states/poi_state.dart';
-import 'package:crud_rutas360/widgets/build_section.dart';
 import 'package:crud_rutas360/widgets/loading_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,850 +20,633 @@ class PoiForm extends StatefulWidget {
   State<PoiForm> createState() => _PoiFormState();
 }
 
-class _PoiFormState extends State<PoiForm> {
-  final _createPoiFormKey = GlobalKey<FormState>();
-
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _descEsController = TextEditingController();
-  final TextEditingController _descEnController = TextEditingController();
-  final TextEditingController _descPtController = TextEditingController();
-  final TextEditingController _latController = TextEditingController();
-  final TextEditingController _longController = TextEditingController();
-  final MultiSelectController<PoiCategory> _multiSelectCategoryController =
-      MultiSelectController<PoiCategory>();
-  final MultiSelectController<Activity> _multiSelectActivityController =
-      MultiSelectController<Activity>();
-  String dropdownValue = "sin_asignar";
+class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
   final Color mainColor = const Color(0xFF4D67AE);
-  PlatformFile? _pickedImage;
-  PlatformFile? _winter360view;
-  PlatformFile? _spring360view;
-  PlatformFile? _summer360view;
-  PlatformFile? _autumn360view;
-  bool _initializedFromPoi = false;
 
-  void _scheduleRebuild() {
-    if (!mounted) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {});
-    });
-  }
+  // Controladores de texto
+  final _name = TextEditingController();
+  final _descEs = TextEditingController();
+  final _descEn = TextEditingController();
+  final _descPt = TextEditingController();
+  final _lat = TextEditingController();
+  final _long = TextEditingController();
+
+  // MultiSelect controllers
+  final _categoryCtrl = MultiSelectController<PoiCategory>();
+  final _activityCtrl = MultiSelectController<Activity>();
+
+  // Archivos
+  PlatformFile? _img;
+  PlatformFile? _winter;
+  PlatformFile? _spring;
+  PlatformFile? _summer;
+  PlatformFile? _autumn;
+
+  // Ruta
+  String _route = 'sin_asignar';
+
+  // Tabs
+  late TabController _tabController;
+  bool _initialized = false;
+
+  // Límite de tamaño de imagen
+  static const int _maxImageBytes = 10 * 1024 * 1024; // 10 MB
+
+  // Estados de validación visual por pestaña
+  bool _errorDatos = false;
+  bool _errorMultimedia = false;
+  bool _errorAsignaciones = false; // se mantiene para UI, pero no se marcará en rojo
 
   @override
   void initState() {
     super.initState();
-    // Add listeners to text controllers to update preview in real-time
-    _nameController.addListener(_scheduleRebuild);
-    _descEsController.addListener(_scheduleRebuild);
-    _descEnController.addListener(_scheduleRebuild);
-    _descPtController.addListener(_scheduleRebuild);
-    _latController.addListener(_scheduleRebuild);
-    _longController.addListener(_scheduleRebuild);
-    
-    // Add listeners to multi-select controllers
-    _multiSelectCategoryController.addListener(_scheduleRebuild);
-    _multiSelectActivityController.addListener(_scheduleRebuild);
+    _tabController = TabController(length: 3, vsync: this);
+
+    // Listeners para refrescar preview en tiempo real
+    for (final c in [_name, _descEs, _descEn, _descPt, _lat, _long]) {
+      c.addListener(() {
+        if (_errorDatos) setState(() {}); else setState(() {});
+      });
+    }
+    _categoryCtrl.addListener(() => setState(() {}));
+    _activityCtrl.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    // Clean up listeners
-    _nameController.dispose();
-    _descEsController.dispose();
-    _descEnController.dispose();
-    _descPtController.dispose();
-    _latController.dispose();
-    _longController.dispose();
-    _multiSelectCategoryController.dispose();
-    _multiSelectActivityController.dispose();
+    for (final c in [_name, _descEs, _descEn, _descPt, _lat, _long]) {
+      c.dispose();
+    }
+    _categoryCtrl.dispose();
+    _activityCtrl.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<PoiBloc, PoiState>(
-      listener: (context, state) {
-        if (state is PoiOperationSuccess) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.green)); // 🔧 agregado
-          // Navigate back to POI table after successful operation
-          context.go('/pois');
-        } else if (state is PoiLoadedWithSuccess) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.green)); // 🔧 agregado
-          // Navigate back to POI table after successful operation
-          context.go('/pois');
-        }
-      },
-      builder: (context, state) {
-        POI? poi;
-        if (state is PoiFormState) {
-          poi = state.poi;
-          if (poi != null && !_initializedFromPoi) {
-            // Initialize controllers and selections after this build
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              final p = poi!; // capture non-null value for this callback
-              _nameController.text = p.nombre;
-              _descEsController.text = p.descripcion['es'] ?? '';
-              _descEnController.text = p.descripcion['en'] ?? '';
-              _descPtController.text = p.descripcion['pt'] ?? '';
-              _latController.text = p.latitud.toString();
-              _longController.text = p.longitud.toString();
-
-              if (p.categorias.isNotEmpty) {
-                try {
-                  _multiSelectCategoryController.selectWhere(
-                    (item) => (p.categorias).any(
-                      (cat) => cat.id == item.value.id,
-                    ),
-                  );
-                } catch (_) {}
-              }
-
-              if (p.actividades.isNotEmpty) {
-                try {
-                  _multiSelectActivityController.selectWhere(
-                    (item) => (p.actividades).any(
-                      (act) => act.id == item.value.id,
-                    ),
-                  );
-                } catch (_) {}
-              }
-              dropdownValue = p.routeId ?? "sin_asignar";
-              _initializedFromPoi = true;
-              _scheduleRebuild();
-            });
-          }
-
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Form(
-                              key: _createPoiFormKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Crear Punto de Interés',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  BuildSection(
-                                    mainColor: mainColor,
-                                    title: "Nombre del punto de interés",
-                                    subtitle:
-                                        "Nombre identificador del punto de interés",
-                                    child: TextFormField(
-                                      controller: _nameController,
-                                      autocorrect: true,
-                                      enableSuggestions: true,
-                                      decoration: const InputDecoration(
-                                        labelText:
-                                            'Nombre del Punto de Interés',
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      // Validamos nombre obligatorio evitando lenguaje ofensivo.
-                                      validator: (value) =>
-                                          InputValidators.validateTextField(
-                                        value,
-                                        emptyMessage:
-                                            'Por favor ingrese el nombre del punto de interes',
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  BuildSection(
-                                    mainColor: mainColor,
-                                    title: "Descripción del punto de interés",
-                                    subtitle:
-                                        "Breve descripción del punto de interés",
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          children: [
-                                            CircleAvatar(
-                                              backgroundColor: mainColor,
-                                              child: Text(
-                                                'ES',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: TextFormField(
-                                                controller: _descEsController,
-                                                autocorrect: true,
-                                                enableSuggestions: true,
-                                                decoration: const InputDecoration(
-                                                  labelText:
-                                                      'Descripción en Español del Punto de Interés',
-                                                  border: OutlineInputBorder(),
-                                                ),
-                                                maxLines: 3,
-                                                // Validamos longitud minima y lenguaje en la descripcion principal.
-                                                validator: (value) =>
-                                                    InputValidators.validateDescriptionField(
-                                                  value,
-                                                  isRequired: true,
-                                                  emptyMessage:
-                                                      'Por favor ingrese la descripcion en espanol del punto de interes',
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Row(
-                                          children: [
-                                            CircleAvatar(
-                                              backgroundColor: mainColor,
-                                              child: Text(
-                                                'EN',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: TextFormField(
-                                                controller: _descEnController,
-                                                autocorrect: true,
-                                                enableSuggestions: true,
-                                                decoration: const InputDecoration(
-                                                  labelText:
-                                                      'Descripción en Inglés del Punto de Interés',
-                                                  border: OutlineInputBorder(),
-                                                ),
-                                                maxLines: 3,
-                                                // Evitamos lenguaje ofensivo y textos muy cortos si se completa.
-                                                validator: (value) =>
-                                                    InputValidators.validateDescriptionField(
-                                                  value,
-                                                  isRequired: false,
-                                                  emptyMessage:
-                                                      'Por favor ingrese la descripcion en ingles del punto de interes',
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Row(
-                                          children: [
-                                            CircleAvatar(
-                                              backgroundColor: mainColor,
-                                              child: Text(
-                                                'PT',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: TextFormField(
-                                                controller: _descPtController,
-                                                autocorrect: true,
-                                                enableSuggestions: true,
-                                                decoration: const InputDecoration(
-                                                  labelText:
-                                                      'Descripción en Portugués del Punto de Interés',
-                                                  border: OutlineInputBorder(),
-                                                ),
-                                                maxLines: 3,
-                                                // Validamos entradas opcionales evitando lenguaje ofensivo.
-                                                validator: (value) =>
-                                                    InputValidators.validateDescriptionField(
-                                                  value,
-                                                  isRequired: false,
-                                                  emptyMessage:
-                                                      'Por favor ingrese la descripcion en portugues del punto de interes',
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  BuildSection(
-                                    mainColor: mainColor,
-                                    title: "Ubicación",
-                                    subtitle:
-                                        "Coordenadas del punto de interés",
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextFormField(
-                                            controller: _latController,
-                                            autocorrect: false,
-                                            enableSuggestions: false,
-                                            keyboardType:
-                                                const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                              signed: true,
-                                            ),
-                                            decoration: const InputDecoration(
-                                              labelText: 'Latitud',
-                                              border: OutlineInputBorder(),
-                                            ),
-                                            // Validamos que la latitud sea numerica y dentro de Chile.
-                                            validator: InputValidators.validateLatitude,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: TextFormField(
-                                            controller: _longController,
-                                            autocorrect: false,
-                                            enableSuggestions: false,
-                                            keyboardType:
-                                                const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                              signed: true,
-                                            ),
-                                            decoration: const InputDecoration(
-                                              labelText: 'Longitud',
-                                              border: OutlineInputBorder(),
-                                            ),
-                                            // Validamos que la longitud respete el rango nacional.
-                                            validator: InputValidators.validateLongitude,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 16),
-                                  BuildSection(
-                                    mainColor: mainColor,
-                                    title: "Información adicional",
-                                    subtitle:
-                                        "Selecciona la ruta asociada, categorías y actividades",
-                                    child: Column(
-                                      children: [
-                                        MultiDropdown(
-                                          items: state.categories
-                                              .map(
-                                                (category) => DropdownItem(
-                                                  label: category.nombre['es'],
-                                                  value: category,
-                                                ),
-                                              )
-                                              .toList(),
-                                          controller:
-                                              _multiSelectCategoryController,
-                                          enabled: true,
-                                          searchEnabled: true,
-                                          fieldDecoration: FieldDecoration(
-                                            labelText: 'Selecciona categorias',
-                                            hintText: 'Selecciona categorias',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                          searchDecoration:
-                                              SearchFieldDecoration(
-                                                hintText: 'Buscar',
-                                                border: OutlineInputBorder(),
-                                              ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        MultiDropdown(
-                                          items: state.activities
-                                              .map(
-                                                (activity) => DropdownItem(
-                                                  label: activity.nombre['es'],
-                                                  value: activity,
-                                                ),
-                                              )
-                                              .toList(),
-                                          controller:
-                                              _multiSelectActivityController,
-                                          enabled: true,
-                                          searchEnabled: true,
-                                          fieldDecoration: FieldDecoration(
-                                            labelText: 'Selecciona actividades',
-                                            hintText: 'Selecciona actividades',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                          searchDecoration:
-                                              SearchFieldDecoration(
-                                                hintText: 'Buscar',
-                                                border: OutlineInputBorder(),
-                                              ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: DropdownMenu<String>(
-                                            expandedInsets: EdgeInsets.zero,
-                                            initialSelection: "sin_asignar",
-                                            dropdownMenuEntries: [
-                                              ...state.routes.map(
-                                                (route) =>
-                                                    DropdownMenuEntry<String>(
-                                                      value: route.id,
-                                                      label: route.name,
-                                                    ),
-                                              ),
-                                            ],
-                                            onSelected: (String? newValue) {
-                                              if (newValue != null && mounted) {
-                                                setState(() {
-                                                  dropdownValue = newValue;
-                                                });
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 16),
-                                  BuildSection(
-                                    mainColor: mainColor,
-                                    title: "Imágenes",
-                                    subtitle:
-                                        "Imagen representativa y vistas 360",
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const SizedBox(height: 16),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  "Imagen del Punto de Interés",
-                                                ),
-                                                if (poi == null) // Show required indicator for new POIs
-                                                  Text(
-                                                    " *",
-                                                    style: TextStyle(
-                                                      color: Colors.red,
-                                                      fontSize: 16,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                const SizedBox(width: 16),
-                                                ElevatedButton(
-                                                  onPressed: () async {
-                                                    final picked =
-                                                        await _pickImage();
-                                                    if (mounted) {
-                                                      setState(() {
-                                                        _pickedImage = picked;
-                                                      });
-                                                    }
-                                                  },
-                                                  child: const Text(
-                                                    "Seleccionar Imagen",
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(height: 8),
-                                            if (_pickedImage != null)
-                                              Text(
-                                                'Imagen seleccionada: ${_pickedImage!.name}',
-                                                style: TextStyle(
-                                                  color: Colors.green,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              )
-                                            else
-                                              Text(
-                                                poi == null 
-                                                  ? 'No se ha seleccionado imagen (requerido)'
-                                                  : 'No se ha seleccionado imagen nueva',
-                                                style: TextStyle(
-                                                  color: poi == null ? Colors.red : Colors.black54,
-                                                  fontWeight: poi == null ? FontWeight.w500 : FontWeight.normal,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 16),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  "Vista 360 de invierno del Punto de Interés",
-                                                ),
-                                                const SizedBox(width: 16),
-                                                ElevatedButton(
-                                                  onPressed: () async {
-                                                    final picked =
-                                                        await _pickImage();
-                                                    if (mounted) {
-                                                      setState(() {
-                                                        _winter360view = picked;
-                                                      });
-                                                    }
-                                                  },
-                                                  child: const Text(
-                                                    "Seleccionar Imagen",
-
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(height: 8),
-                                            if (_winter360view != null)
-                                              Text(
-                                                'Imagen seleccionada: ${_winter360view!.name}',
-                                                style:  TextStyle(color: Colors.green, fontWeight: FontWeight.w500)
-                                              )
-                                            else if (poi?.vistas360['Invierno'] != null && poi!.vistas360['Invierno'].toString().trim().isNotEmpty)
-                                              Text(
-                                                'Imagen existente en Firebase disponible',
-                                                style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500)
-                                              )
-                                            else
-                                              Text(
-                                                'No se ha seleccionado imagen',
-                                                style:  TextStyle(color: Colors.black54)
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  "Vista 360 de primavera del Punto de Interés",
-                                                ),
-                                                const SizedBox(width: 16),
-                                                ElevatedButton(
-                                                  onPressed: () async {
-                                                    final picked =
-                                                        await _pickImage();
-                                                    if (mounted) {
-                                                      setState(() {
-                                                        _spring360view = picked;
-                                                      });
-                                                    }
-                                                  },
-                                                  child: const Text(
-                                                    "Seleccionar Imagen",
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(height: 8),
-                                            if (_spring360view != null)
-                                              Text(
-                                                'Imagen seleccionada: ${_spring360view!.name}',
-                                                style:  TextStyle(color: Colors.green, fontWeight: FontWeight.w500)
-                                              )
-                                            else if (poi?.vistas360['Primavera'] != null && poi!.vistas360['Primavera'].toString().trim().isNotEmpty)
-                                              Text(
-                                                'Imagen existente en Firebase disponible',
-                                                style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500)
-                                              )
-                                            else
-                                              Text(
-                                                'No se ha seleccionado imagen',
-                                                style:  TextStyle(color: Colors.black54)
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  "Vista 360 de verano del Punto de Interés",
-                                                ),
-                                                const SizedBox(width: 16),
-                                                ElevatedButton(
-                                                  onPressed: () async {
-                                                    final picked =
-                                                        await _pickImage();
-                                                    if (mounted) {
-                                                      setState(() {
-                                                        _summer360view = picked;
-                                                      });
-                                                    }
-                                                  },
-                                                  child: const Text(
-                                                    "Seleccionar Imagen",
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(height: 8),
-                                            if (_summer360view != null)
-                                              Text(
-                                                'Imagen seleccionada: ${_summer360view!.name}',
-                                                style:  TextStyle(color: Colors.green, fontWeight: FontWeight.w500)
-                                              )
-                                            else if (poi?.vistas360['Verano'] != null && poi!.vistas360['Verano'].toString().trim().isNotEmpty)
-                                              Text(
-                                                'Imagen existente en Firebase disponible',
-                                                style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500)
-                                              )
-                                            else
-                                              Text(
-                                                'No se ha seleccionado imagen',
-                                                style:  TextStyle(color: Colors.black54)
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  "Vista 360 de otoño del Punto de Interés",
-                                                ),
-                                                const SizedBox(width: 16),
-                                                ElevatedButton(
-                                                  onPressed: () async {
-                                                    final picked =
-                                                        await _pickImage();
-                                                    if (mounted) {
-                                                      setState(() {
-                                                        _autumn360view = picked;
-                                                      });
-                                                    }
-                                                  },
-                                                  child: const Text(
-                                                    "Seleccionar Imagen",
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(height: 8),
-                                            if (_autumn360view != null)
-                                              Text(
-                                                'Imagen seleccionada: ${_autumn360view!.name}',
-                                                style:  TextStyle(color: Colors.green, fontWeight: FontWeight.w500)
-                                              )
-                                            else if (poi?.vistas360['Otoño'] != null && poi!.vistas360['Otoño'].toString().trim().isNotEmpty)
-                                              Text(
-                                                'Imagen existente en Firebase disponible',
-                                                style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500)
-                                              )
-                                            else
-                                              Text(
-                                                'No se ha seleccionado imagen',
-                                                style:  TextStyle(color: Colors.black54)
-                                              ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Expanded(
-                                        child: FilledButton(
-                                          onPressed: () {
-                                            context.read<PoiBloc>().add(
-                                              LoadPOIs(),
-                                            );
-                                            context.pop();
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Color(0xFFE0E0E0),
-                                          ),
-                                          child: Text(
-                                            'Cancelar',
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                      SizedBox(width: 16),
-                                      Expanded(
-                                        child: FilledButton(
-                                          onPressed: () async {
-                                            if (_createPoiFormKey.currentState!
-                                                .validate()) {
-                                              // Validate image selection for new POIs
-                                              if (poi == null && _pickedImage == null) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text('Por favor selecciona una imagen para el POI'),
-                                                    backgroundColor: Colors.red,
-                                                  ),
-                                                );
-                                                return;
-                                              }
-                                              
-                                              if (poi != null) {
-                                                await _fnAddPoi(poi);
-                                              } else {
-                                                await _fnAddPoi(null);
-                                              }
-                                             
-                                            }
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Color(0xFF4D67AE),
-                                          ),
-                                          child: Text(
-                                            poi == null
-                                                ? 'Crear'
-                                                : 'Actualizar',
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          height: 803,
-                          width: 393,
-                          child: PoiScreen(
-                            _nameController.text.isNotEmpty
-                                ? _nameController.text
-                                : 'Ingresa el nombre del POI',
-                            _pickedImage,
-                            {
-                              'es': _descEsController.text,
-                              'en': _descEnController.text,
-                              'pt': _descPtController.text,
-                            },
-                            // Show selected categories from controller (real-time updates)
-                            _multiSelectCategoryController.selectedItems
-                                .map((item) => item.value)
-                                .toList(),
-                            // Show selected activities from controller (real-time updates)
-                            _multiSelectActivityController.selectedItems
-                                .map((item) => item.value)
-                                .toList(),
-                            {
-                              'Invierno': _winter360view,
-                              'Primavera': _spring360view,
-                              'Verano': _summer360view,
-                              'Otoño': _autumn360view,
-                            },
-                            imageUrl: poi?.imagen,
-                            existingVistas360: poi?.vistas360,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F7FB),
+      body: BlocConsumer<PoiBloc, PoiState>(
+        listener: (context, state) {
+          if (state is PoiOperationSuccess || state is PoiLoadedWithSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text((state as dynamic).message),
+                backgroundColor: Colors.green,
               ),
-            ),
-          );
-        } else {
+            );
+            context.go('/pois');
+          }
+        },
+        builder: (context, state) {
+          if (state is PoiFormState) {
+            final poi = state.poi;
+            if (!_initialized && poi != null) _loadPoi(poi);
+            return _buildLayout(context, state, poi);
+          }
           return const LoadingMessage();
-        }
-      },
+        },
+      ),
     );
   }
 
-  Future<void> _fnAddPoi(POI? poi) async {
-    final String name = _nameController.text;
-    final String descEs = _descEsController.text;
-    final String descEn = _descEnController.text;
-    final String descPt = _descPtController.text;
-    final double lat = double.parse(_latController.text.replaceAll(',', '.'));
-    final double long = double.parse(_longController.text.replaceAll(',', '.'));
-    final List<PoiCategory> selectedCategories = _multiSelectCategoryController
-        .selectedItems
-        .map((item) => item.value)
-        .toList();
-    final List<Activity> selectedActivities = _multiSelectActivityController
-        .selectedItems
-        .map((item) => item.value)
-        .toList();
+  void _loadPoi(POI poi) {
+    _name.text = poi.nombre;
+    _descEs.text = poi.descripcion['es'] ?? '';
+    _descEn.text = poi.descripcion['en'] ?? '';
+    _descPt.text = poi.descripcion['pt'] ?? '';
+    _lat.text = poi.latitud.toString();
+    _long.text = poi.longitud.toString();
+    _route = poi.routeId ?? 'sin_asignar';
+    _initialized = true;
+  }
 
-    final Map<String, String> descripcion = {
-      'es': descEs,
-      'en': descEn,
-      'pt': descPt,
-    };
-    String poiId = poi?.id ?? '';
+  Widget _buildLayout(BuildContext context, PoiFormState state, POI? poi) {
+    final size = MediaQuery.of(context).size;
 
-    
+    return Row(
+      children: [
+        // FORM IZQUIERDO
+        Expanded(
+          flex: 7,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Crear Punto de Interés',
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 24),
+                _buildTabBar(),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: Form(
+                    key: _formKey,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _tabDatos(context),
+                        _tabMultimedia(context, poi),
+                        _tabAsignaciones(context, state, poi),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
 
-    
+        // PREVIEW DERECHO
+        Container(
+          width: 420,
+          height: size.height,
+          color: Colors.white,
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(child: _preview(poi)),
+        ),
+      ],
+    );
+  }
 
-    if (_pickedImage != null) {
-      print('[poi_form] _fnAddPoi: New image selected for update: \\${_pickedImage!.name}');
-    } else {
-      print('[poi_form] _fnAddPoi: No new image selected for update');
+  Widget _buildTabBar() {
+    return TabBar(
+      controller: _tabController,
+      labelColor: mainColor,
+      unselectedLabelColor: Colors.black45,
+      indicatorColor: mainColor,
+      tabs: [
+        Tab(
+          icon: Icon(
+            Icons.info_outline,
+            color: _errorDatos ? Colors.red : mainColor,
+          ),
+          text: _errorDatos ? 'Datos ⚠️' : 'Datos',
+        ),
+        Tab(
+          icon: Icon(
+            Icons.photo_library_outlined,
+            color: _errorMultimedia ? Colors.red : mainColor,
+          ),
+          text: _errorMultimedia ? 'Multimedia ⚠️' : 'Multimedia',
+        ),
+        Tab(
+          icon: Icon(
+            Icons.link,
+            color: _errorAsignaciones ? Colors.red : mainColor,
+          ),
+          // Asignaciones NO tiene obligatorios; mantenemos texto normal
+          text: 'Asignaciones',
+        ),
+      ],
+    );
+  }
+
+  // ======================= TAB 1: DATOS =======================
+  Widget _tabDatos(BuildContext context) {
+    return ListView(
+      children: [
+        _section(
+          "Datos Generales",
+          TextFormField(
+            controller: _name,
+            decoration: const InputDecoration(
+              labelText: 'Nombre del Punto de Interés',
+              border: OutlineInputBorder(),
+            ),
+            validator: (v) =>
+                InputValidators.validateTextField(v, emptyMessage: 'Campo requerido'),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _section("Descripciones del Punto de Interés", _buildDescripcionFields()),
+        const SizedBox(height: 24),
+        _section(
+          "Ubicación",
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _lat,
+                  decoration: const InputDecoration(
+                    labelText: 'Latitud',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: InputValidators.validateLatitude,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextFormField(
+                  controller: _long,
+                  decoration: const InputDecoration(
+                    labelText: 'Longitud',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: InputValidators.validateLongitude,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+        _formButtons(
+          onNext: () {
+            if (_formKey.currentState!.validate()) {
+              setState(() => _errorDatos = false);
+              _tabController.animateTo(1);
+            } else {
+              setState(() => _errorDatos = true);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Por favor completa los campos obligatorios.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          onCancel: () => context.go('/pois'),
+        ),
+      ],
+    );
+  }
+
+  // Descripciones con icono de idioma
+  Widget _buildDescripcionFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _langField("ES", "Descripción en Español", _descEs, true),
+        const SizedBox(height: 12),
+        _langField("EN", "Descripción en Inglés", _descEn, false),
+        const SizedBox(height: 12),
+        _langField("PT", "Descripción en Portugués", _descPt, false),
+      ],
+    );
+  }
+
+  Widget _langField(
+    String code,
+    String label,
+    TextEditingController controller,
+    bool required,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          margin: const EdgeInsets.only(right: 12, top: 8),
+          decoration: BoxDecoration(color: mainColor, shape: BoxShape.circle),
+          child: Text(
+            code,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+        Expanded(
+          child: TextFormField(
+            controller: controller,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+            ).copyWith(labelText: label),
+            validator: (v) => InputValidators.validateDescriptionField(
+              v,
+              isRequired: required,
+              emptyMessage: "Campo obligatorio",
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ======================= TAB 2: MULTIMEDIA =======================
+  Widget _tabMultimedia(BuildContext context, POI? poi) {
+    return ListView(
+      children: [
+        _section(
+          "Imagen Principal",
+          _imagePicker(
+            "Seleccionar imagen",
+            (f) => setState(() => _img = f),
+            _img,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _section(
+          "Vistas 360°",
+          Column(
+            children: [
+              _season("Invierno ❄️", _winter, (f) => setState(() => _winter = f)),
+              _season("Primavera 🌸", _spring, (f) => setState(() => _spring = f)),
+              _season("Verano ☀️", _summer, (f) => setState(() => _summer = f)),
+              _season("Otoño 🍂", _autumn, (f) => setState(() => _autumn = f)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+        _formButtons(
+          onNext: () {
+            // Imagen principal obligatoria SOLO en creación
+            if (poi == null && _img == null) {
+              setState(() => _errorMultimedia = true);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('La imagen principal es obligatoria (máx. 10 MB).'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+            setState(() => _errorMultimedia = false);
+            _tabController.animateTo(2);
+          },
+          onCancel: () => context.go('/pois'),
+        ),
+      ],
+    );
+  }
+
+  // ======================= TAB 3: ASIGNACIONES =======================
+  Widget _tabAsignaciones(BuildContext context, PoiFormState state, POI? poi) {
+    return ListView(
+      children: [
+        _section(
+          "Categorías",
+          MultiDropdown(
+            items: state.categories
+                .map((e) => DropdownItem(label: e.nombre['es'], value: e))
+                .toList(),
+            controller: _categoryCtrl,
+            fieldDecoration: const FieldDecoration(
+              labelText: "Selecciona categorías",
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _section(
+          "Actividades",
+          MultiDropdown(
+            items: state.activities
+                .map((e) => DropdownItem(label: e.nombre['es'], value: e))
+                .toList(),
+            controller: _activityCtrl,
+            fieldDecoration: const FieldDecoration(
+              labelText: "Selecciona actividades",
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _section(
+          "Ruta Asociada",
+          DropdownMenu<String>(
+            expandedInsets: EdgeInsets.zero,
+            initialSelection: 'sin_asignar',
+            dropdownMenuEntries: state.routes
+                .map((r) => DropdownMenuEntry(value: r.id, label: r.name))
+                .toList(),
+            onSelected: (v) => setState(() => _route = v ?? 'sin_asignar'),
+          ),
+        ),
+        const SizedBox(height: 32),
+        _formButtons(
+          primaryText: poi == null ? "Crear POI" : "Actualizar POI",
+          onNext: () {
+            final valid = _validateTabs(poi);
+            if (valid) {
+              _submit(poi); // Mantiene la lógica original
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Por favor completa los campos obligatorios antes de continuar.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          onCancel: () => context.go('/pois'),
+        ),
+      ],
+    );
+  }
+
+  // ======================= VALIDACIÓN GLOBAL POR TABS =======================
+  bool _validateTabs(POI? poi) {
+    final datosValid = _formKey.currentState!.validate();
+    final multimediaValid = poi != null || _img != null; // si es edición, se permite null
+
+    setState(() {
+      _errorDatos = !datosValid;
+      _errorMultimedia = !multimediaValid;
+      _errorAsignaciones = false; // NO hay requeridos en Asignaciones
+    });
+
+    return datosValid && multimediaValid;
+  }
+
+  // ======================= SECCIÓN GENÉRICA =======================
+  Widget _section(String title, Widget child) => Container(
+        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F4FB),
+          borderRadius: BorderRadius.circular(12),
+          border: Border(left: BorderSide(color: mainColor, width: 4)),
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2))
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      );
+
+  // ======================= PICKERS Y HELPERS =======================
+  Future<PlatformFile?> _pickImageWithValidation(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+      if (result == null) return null;
+
+      final file = result.files.first;
+
+      // Si tienes tu propio validador, puedes reemplazar esta línea por:
+      // if (InputValidators.isFileTooLarge(file)) { ... }
+      if (file.size > _maxImageBytes) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('La imagen supera el tamaño máximo permitido (10 MB).'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return null;
+      }
+      return file;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al seleccionar imagen: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return null;
     }
-    print('[poi_form] _fnAddPoi: 360 views for update:');
-    print('  Invierno: ' + (_winter360view != null ? _winter360view!.name : 'none'));
-    print('  Primavera: ' + (_spring360view != null ? _spring360view!.name : 'none'));
-    print('  Verano: ' + (_summer360view != null ? _summer360view!.name : 'none'));
-    print('  Otoño: ' + (_autumn360view != null ? _autumn360view!.name : 'none'));
-    final POI newPoi = POI(
-      routeId: dropdownValue,
-      id: poiId,
-      nombre: name,
-      descripcion: descripcion,
-      latitud: lat,
-      longitud: long,
-      categorias: selectedCategories,
-      actividades: selectedActivities,
-      imagen: poi?.imagen ?? '', // never set to local path
+  }
+
+  Widget _imagePicker(
+    String label,
+    void Function(PlatformFile?) onPick,
+    PlatformFile? file,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: mainColor,
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          ),
+          onPressed: () async {
+            final selected = await _pickImageWithValidation(context);
+            if (selected != null) onPick(selected);
+            setState(() {}); // refresca preview
+          },
+          child: Text(label),
+        ),
+        const SizedBox(height: 8),
+        Text(file != null ? "Seleccionada: ${file.name}" : "No se ha seleccionado imagen"),
+      ],
+    );
+  }
+
+  Widget _season(
+    String title,
+    PlatformFile? file,
+    void Function(PlatformFile?) onPick,
+  ) {
+    return Theme(
+      data: ThemeData().copyWith(dividerColor: mainColor),
+      child: ExpansionTile(
+        collapsedShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: mainColor.withOpacity(0.3)),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: mainColor.withOpacity(0.3)),
+        ),
+        textColor: mainColor,
+        iconColor: mainColor,
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        children: [
+          const SizedBox(height: 8),
+          _imagePicker("Seleccionar imagen", (f) => onPick(f), file),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  // ======================= BOTONES REUTILIZABLES =======================
+  Widget _formButtons({
+    required VoidCallback onNext,
+    required VoidCallback onCancel,
+    String primaryText = "Siguiente",
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _actionButton("Cancelar", onCancel, Colors.grey[300]!, Colors.black),
+          const SizedBox(width: 12),
+          _actionButton(primaryText, onNext, mainColor, Colors.white),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton(String text, VoidCallback onPressed, Color bg, Color fg) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 180, minHeight: 45),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bg,
+          foregroundColor: fg,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onPressed: onPressed,
+        child: Text(text),
+      ),
+    );
+  }
+
+  // ======================= PREVIEW =======================
+  Widget _preview(POI? poi) {
+    return Column(
+      children: [
+        const Text(
+          "Vista previa del POI",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        AspectRatio(
+          aspectRatio: 9 / 16,
+          child: PoiScreen(
+            _name.text.isNotEmpty ? _name.text : "Ingresa el nombre del POI",
+            _img,
+            {'es': _descEs.text, 'en': _descEn.text, 'pt': _descPt.text},
+            _categoryCtrl.selectedItems.map((i) => i.value).toList(),
+            _activityCtrl.selectedItems.map((i) => i.value).toList(),
+            {
+              'Invierno': _winter,
+              'Primavera': _spring,
+              'Verano': _summer,
+              'Otoño': _autumn,
+            },
+            imageUrl: poi?.imagen,
+            existingVistas360: poi?.vistas360,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ======================= SUBMIT (MISMA LÓGICA) =======================
+  void _submit(POI? poi) {
+    final newPoi = POI(
+      routeId: _route,
+      id: poi?.id ?? '',
+      nombre: _name.text,
+      descripcion: {'es': _descEs.text, 'en': _descEn.text, 'pt': _descPt.text},
+      latitud: double.parse(_lat.text.replaceAll(',', '.')),
+      longitud: double.parse(_long.text.replaceAll(',', '.')),
+      categorias: _categoryCtrl.selectedItems.map((i) => i.value).toList(),
+      actividades: _activityCtrl.selectedItems.map((i) => i.value).toList(),
+      imagen: poi?.imagen ?? '',
       vistas360: {},
     );
 
@@ -872,12 +654,12 @@ class _PoiFormState extends State<PoiForm> {
       context.read<PoiBloc>().add(
         UpdatePOI(
           newPoi,
-          image: _pickedImage, // optional
+          image: _img,
           new360Views: {
-            'Invierno': _winter360view,
-            'Primavera': _spring360view,
-            'Verano': _summer360view,
-            'Otoño': _autumn360view,
+            'Invierno': _winter,
+            'Primavera': _spring,
+            'Verano': _summer,
+            'Otoño': _autumn,
           },
         ),
       );
@@ -885,49 +667,15 @@ class _PoiFormState extends State<PoiForm> {
       context.read<PoiBloc>().add(
         AddPOI(
           newPoi,
-          _pickedImage!,
+          _img!,
           {
-            'Invierno': _winter360view,
-            'Primavera': _spring360view,
-            'Verano': _summer360view,
-            'Otoño': _autumn360view,
+            'Invierno': _winter,
+            'Primavera': _spring,
+            'Verano': _summer,
+            'Otoño': _autumn,
           },
         ),
       );
     }
   }
-
-  Future<PlatformFile?> _pickImage() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image, // Specify to pick only images
-        allowMultiple: false,
-        withData: true, // ensure bytes on web
-      );
-
-      if (result != null) {
-        final selected = result.files.first;
-        // Protegemos el formulario ante imagenes mayores a 10 MB.
-        if (InputValidators.isFileTooLarge(selected)) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('La imagen supera el tamaño máximo permitido (10 MB).'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return null;
-        }
-        return selected;
-      } else {
-        // User canceled the picker
-        return null;
-      }
-    } catch (e) {
-      // Handle any errors that might occur during file picking
-      throw Exception('Error picking image: $e');
-    }
-  }
 }
-
