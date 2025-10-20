@@ -14,76 +14,110 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  final Color mainColor = const Color(0xFF4D67AE);
+
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final bool isMobilePlatform = defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS;
+    final bool isMobilePlatform =
+        defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS;
     final bool isSmallWidth = media.size.width < 720;
+
     if (isMobilePlatform || isSmallWidth) {
       return const DesktopOnlyMessage();
     }
 
     return Scaffold(
-      backgroundColor: Color(0xFF4D67AE),
+      backgroundColor: mainColor,
       body: Center(
         child: Container(
+          width: 450,
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
+          margin: const EdgeInsets.symmetric(vertical: 80),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black12,
-                blurRadius: 10.0,
-                offset: Offset(0, 5),
+                color: mainColor.withValues(alpha: 0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
-          width: 500,
-          padding: const EdgeInsets.all(16.0),
-          margin: const EdgeInsets.symmetric(vertical: 64),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Iniciar Sesión', style: TextStyle(fontSize: 32)),
-              const SizedBox(height: 20),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              Text(
+                'Rutas 360°',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: mainColor,
                 ),
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
+              const SizedBox(height: 24),
+
+              const Text(
+                'Iniciar sesión en el panel administrativo',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black54,
                 ),
+              ),
+              const SizedBox(height: 32),
+
+              // Campos de texto
+              _buildTextField(
+                controller: emailController,
+                label: 'Correo electrónico',
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: passwordController,
+                label: 'Contraseña',
+                icon: Icons.lock_outline,
                 obscureText: true,
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  fnlogin(
-                    emailController.text.trim(),
-                    passwordController.text.trim(),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4D67AE),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 50,
-                    vertical: 15,
+              const SizedBox(height: 32),
+
+              // Botón principal
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    fnlogin(
+                      emailController.text.trim(),
+                      passwordController.text.trim(),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: mainColor,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 50, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 4,
+                    shadowColor: mainColor.withValues(alpha: 0.3),
+                  ),
+                  child: const Text(
+                    'Iniciar Sesión',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Iniciar Sesión',
-                  style: TextStyle(color: Colors.white),
-                ),
               ),
-              
             ],
           ),
         ),
@@ -91,9 +125,42 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void fnlogin(String email, String password) async {
-    final ctx = context; //
+  // ======================= Helper de campos ===========================
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      style: const TextStyle(fontSize: 15),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: mainColor),
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade700),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: mainColor, width: 1.6),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      ),
+    );
+  }
 
+  // ======================= Lógica de login ===========================
+  void fnlogin(String email, String password) async {
+    final ctx = context;
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
@@ -105,7 +172,10 @@ class _LoginPageState extends State<LoginPage> {
     } on FirebaseAuthException catch (e) {
       if (!ctx.mounted) return;
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Error al iniciar sesión'), backgroundColor: Colors.red), // 🔧 agregado
+        SnackBar(
+          content: Text(e.message ?? 'Error al iniciar sesión'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
