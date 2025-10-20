@@ -269,7 +269,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
               );
             }
           },
-          onCancel: () => context.go('/pois'),
+          onCancel: _handleCancel,
         ),
       ],
     );
@@ -370,7 +370,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
             setState(() => _errorMultimedia = false);
             _tabController.animateTo(2);
           },
-          onCancel: () => context.go('/pois'),
+          onCancel: _handleCancel,
         ),
       ],
     );
@@ -435,7 +435,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
               );
             }
           },
-          onCancel: () => context.go('/pois'),
+          onCancel: _handleCancel,
         ),
       ],
     );
@@ -633,6 +633,12 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
         ),
       ],
     );
+  }
+
+  void _handleCancel() {
+    // Reload list before leaving so the table regains its data state.
+    context.read<PoiBloc>().add(LoadPOIs());
+    context.go('/pois');
   }
 
   // ======================= SUBMIT (MISMA LÓGICA) =======================
