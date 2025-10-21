@@ -49,6 +49,10 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   // Tabs
   late TabController _tabController;
   bool _initialized = false;
+  String? _existingImageUrl;
+  final Map<String, String> _existing360Urls = {};
+  Set<String>? _pendingCategoryIds;
+  Set<String>? _pendingActivityIds;
 
   // Límite de tamaño de imagen
   static const int _maxImageBytes = 10 * 1024 * 1024; // 10 MB
@@ -62,6 +66,18 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.index == 2 && !_tabController.indexIsChanging) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final bloc = context.read<PoiBloc>();
+          final currentState = bloc.state;
+          if (currentState is PoiFormState && currentState.poi != null) {
+            _applyInitialAssignments();
+          }
+        });
+      }
+    });
 
     // Listeners para refrescar preview en tiempo real
     for (final c in [_name, _descEs, _descEn, _descPt, _lat, _long]) {
@@ -120,7 +136,102 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
     _lat.text = poi.latitud.toString();
     _long.text = poi.longitud.toString();
     _route = poi.routeId ?? 'sin_asignar';
+    _existingImageUrl = poi.imagen.isNotEmpty ? poi.imagen : null;
+    _existing360Urls.clear();
+    poi.vistas360.forEach((key, value) {
+      if (value is String && value.isNotEmpty) {
+        _existing360Urls[key] = value;
+      }
+    });
+    _pendingCategoryIds = poi.categorias.map((c) => c.id).toSet();
+    _pendingActivityIds = poi.actividades.map((a) => a.id).toSet();
     _initialized = true;
+  }
+
+  void _applyInitialAssignments() {
+    bool updated = false;
+
+    if (_pendingCategoryIds != null &&
+        _pendingCategoryIds!.isNotEmpty &&
+        _categoryCtrl.items.isNotEmpty) {
+      final ids = _pendingCategoryIds!;
+      _categoryCtrl.selectWhere(
+        (item) => ids.contains(item.value.id),
+      );
+      if (_categoryCtrl.selectedItems.isNotEmpty) {
+        _pendingCategoryIds = null;
+        updated = true;
+      }
+    }
+
+    if (_pendingActivityIds != null &&
+        _pendingActivityIds!.isNotEmpty &&
+        _activityCtrl.items.isNotEmpty) {
+      final ids = _pendingActivityIds!;
+      _activityCtrl.selectWhere(
+        (item) => ids.contains(item.value.id),
+      );
+      if (_activityCtrl.selectedItems.isNotEmpty) {
+        _pendingActivityIds = null;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  String? _resolveVistaUrl(POI? poi, String key) {
+    final cached = _existing360Urls[key];
+    if (cached != null && cached.isNotEmpty) return cached;
+    final dynamic value = poi?.vistas360[key];
+    return value is String && value.isNotEmpty ? value : null;
+  }
+
+  void _syncControllerItems<T>(
+    MultiSelectController<T> controller,
+    List<DropdownItem<T>> items,
+    String Function(T value) trackBy,
+  ) {
+    final currentKeys =
+        controller.items.map((item) => trackBy(item.value)).toList();
+    final newKeys = items.map((item) => trackBy(item.value)).toList();
+    if (_listsEqual(currentKeys, newKeys)) return;
+
+    final selectedKeys =
+        controller.selectedItems.map((item) => trackBy(item.value)).toSet();
+    controller.setItems(items);
+    if (selectedKeys.isNotEmpty) {
+      controller.selectWhere(
+        (item) => selectedKeys.contains(trackBy(item.value)),
+      );
+    }
+  }
+
+  bool _listsEqual<T>(List<T> a, List<T> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  String? _fileNameFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final segments = uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+      if (segments.isNotEmpty) {
+        return segments.last;
+      }
+      final fallback = url.split('/').where((segment) => segment.isNotEmpty).toList();
+      return fallback.isNotEmpty ? fallback.last : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   Widget _buildLayout(BuildContext context, PoiFormState state, POI? poi) {
@@ -331,6 +442,9 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
 
   // ======================= TAB 2: MULTIMEDIA =======================
   Widget _tabMultimedia(BuildContext context, POI? poi) {
+    final String? mainImageUrl =
+        _existingImageUrl ?? ((poi?.imagen ?? '').isNotEmpty ? poi!.imagen : null);
+
     return ListView(
       children: [
         _section(
@@ -339,6 +453,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
             "Seleccionar imagen",
             (f) => setState(() => _img = f),
             _img,
+            previewUrl: mainImageUrl,
           ),
         ),
         const SizedBox(height: 16),
@@ -346,10 +461,30 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
           "Vistas 360°",
           Column(
             children: [
-              _season("Invierno ❄️", _winter, (f) => setState(() => _winter = f)),
-              _season("Primavera 🌸", _spring, (f) => setState(() => _spring = f)),
-              _season("Verano ☀️", _summer, (f) => setState(() => _summer = f)),
-              _season("Otoño 🍂", _autumn, (f) => setState(() => _autumn = f)),
+              _season(
+                "Invierno",
+                _winter,
+                (f) => setState(() => _winter = f),
+                previewUrl: _resolveVistaUrl(poi, "Invierno"),
+              ),
+              _season(
+                "Primavera",
+                _spring,
+                (f) => setState(() => _spring = f),
+                previewUrl: _resolveVistaUrl(poi, "Primavera"),
+              ),
+              _season(
+                "Verano",
+                _summer,
+                (f) => setState(() => _summer = f),
+                previewUrl: _resolveVistaUrl(poi, "Verano"),
+              ),
+              _season(
+                "Otoño",
+                _autumn,
+                (f) => setState(() => _autumn = f),
+                previewUrl: _resolveVistaUrl(poi, "Otoño"),
+              ),
             ],
           ),
         ),
@@ -378,14 +513,38 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
 
   // ======================= TAB 3: ASIGNACIONES =======================
   Widget _tabAsignaciones(BuildContext context, PoiFormState state, POI? poi) {
+    final categoryItems = state.categories
+        .map(
+          (e) => DropdownItem(label: e.nombre['es'], value: e),
+        )
+        .toList();
+    final activityItems = state.activities
+        .map(
+          (e) => DropdownItem(label: e.nombre['es'], value: e),
+        )
+        .toList();
+
+    _syncControllerItems<PoiCategory>(
+      _categoryCtrl,
+      categoryItems,
+      (value) => value.id,
+    );
+    _syncControllerItems<Activity>(
+      _activityCtrl,
+      activityItems,
+      (value) => value.id,
+    );
+
+    if (poi != null) {
+      _applyInitialAssignments();
+    }
+
     return ListView(
       children: [
         _section(
           "Categorías",
           MultiDropdown(
-            items: state.categories
-                .map((e) => DropdownItem(label: e.nombre['es'], value: e))
-                .toList(),
+            items: categoryItems,
             controller: _categoryCtrl,
             fieldDecoration: const FieldDecoration(
               labelText: "Selecciona categorías",
@@ -397,9 +556,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
         _section(
           "Actividades",
           MultiDropdown(
-            items: state.activities
-                .map((e) => DropdownItem(label: e.nombre['es'], value: e))
-                .toList(),
+            items: activityItems,
             controller: _activityCtrl,
             fieldDecoration: const FieldDecoration(
               labelText: "Selecciona actividades",
@@ -412,7 +569,8 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
           "Ruta Asociada",
           DropdownMenu<String>(
             expandedInsets: EdgeInsets.zero,
-            initialSelection: 'sin_asignar',
+            initialSelection:
+                state.routes.any((r) => r.id == _route) ? _route : null,
             dropdownMenuEntries: state.routes
                 .map((r) => DropdownMenuEntry(value: r.id, label: r.name))
                 .toList(),
@@ -515,10 +673,35 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   Widget _imagePicker(
     String label,
     void Function(PlatformFile?) onPick,
-    PlatformFile? file,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    PlatformFile? file, {
+    String? previewUrl,
+  }) {
+    final hasFile = file != null;
+    final hasPreviewUrl = !hasFile && previewUrl != null && previewUrl.isNotEmpty;
+    final selectedFileName = file?.name;
+    final existingUrl = previewUrl;
+
+    Widget statusIndicator;
+    if (hasFile && selectedFileName != null) {
+      statusIndicator = _imageStatusChip(
+        "Imagen seleccionada: $selectedFileName",
+        icon: Icons.check_circle_outline,
+      );
+    } else if (hasPreviewUrl &&
+        existingUrl != null &&
+        existingUrl.isNotEmpty) {
+      final fileName = _fileNameFromUrl(existingUrl) ?? 'disponible';
+      statusIndicator = _imageStatusChip(
+        "Imagen actual: $fileName",
+        icon: Icons.image_outlined,
+      );
+    } else {
+      statusIndicator = const Text("No se ha seleccionado imagen");
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         ElevatedButton(
           style: ElevatedButton.styleFrom(
@@ -535,8 +718,8 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
           },
           child: Text(label),
         ),
-        const SizedBox(height: 8),
-        Text(file != null ? "Seleccionada: ${file.name}" : "No se ha seleccionado imagen"),
+        const SizedBox(width: 12),
+        Flexible(child: statusIndicator),
       ],
     );
   }
@@ -544,14 +727,15 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   Widget _season(
     String title,
     PlatformFile? file,
-    void Function(PlatformFile?) onPick,
-  ) {
+    void Function(PlatformFile?) onPick, {
+    String? previewUrl,
+  }) {
     return Theme(
       data: ThemeData().copyWith(dividerColor: mainColor),
       child: ExpansionTile(
         collapsedShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: mainColor.withOpacity(0.3)),
+          side: BorderSide(color: mainColor.withValues(alpha: 0.3)),
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -562,10 +746,25 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         children: [
           const SizedBox(height: 8),
-          _imagePicker("Seleccionar imagen", (f) => onPick(f), file),
+          _imagePicker(
+            "Seleccionar imagen",
+            (f) => onPick(f),
+            file,
+            previewUrl: previewUrl,
+          ),
           const SizedBox(height: 8),
         ],
       ),
+    );
+  }
+
+  Widget _imageStatusChip(String label, {required IconData icon}) {
+    final background = mainColor.withAlpha((0.12 * 255).round());
+    return Chip(
+      avatar: Icon(icon, color: mainColor, size: 18),
+      label: Text(label),
+      backgroundColor: background,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     );
   }
 

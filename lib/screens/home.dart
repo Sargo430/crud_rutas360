@@ -1,5 +1,15 @@
+import 'package:crud_rutas360/blocs/activity_bloc.dart';
+import 'package:crud_rutas360/blocs/category_bloc.dart';
+import 'package:crud_rutas360/blocs/poi_bloc.dart';
+import 'package:crud_rutas360/blocs/route_bloc.dart';
+import 'package:crud_rutas360/events/activity_event.dart';
+import 'package:crud_rutas360/events/category_event.dart';
+import 'package:crud_rutas360/events/poi_events.dart';
+import 'package:crud_rutas360/events/route_event.dart';
+import 'package:crud_rutas360/models/home_models.dart';
 import 'package:crud_rutas360/services/dashboard_metrics_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 class HomePage extends StatefulWidget {
@@ -13,7 +23,7 @@ class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   final Color mainColor = const Color(0xFF4D67AE);
   late final DashboardMetricsService _metricsService;
-  late Future<DashboardMetrics> _metricsFuture;
+  late Stream<DashboardMetrics> _metricsStream;
 
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -71,14 +81,20 @@ class _HomePageState extends State<HomePage>
     _controller.forward();
 
     _metricsService = DashboardMetricsService();
-    _metricsFuture = _metricsService.fetchDashboardMetrics();
+    _metricsStream = _metricsService.watchDashboardMetrics();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<RouteBloc>().add(LoadRoute());
+      context.read<PoiBloc>().add(LoadPOIs());
+      context.read<CategoryBloc>().add(LoadCategories());
+      context.read<ActivityBloc>().add(LoadActivities());
+    });
   }
 
   void _refreshMetrics() {
-    // Reinicia la consulta de métricas para soportar reintentos desde la UI.
-    setState(() {
-      _metricsFuture = _metricsService.fetchDashboardMetrics();
-    });
+    // Reinicia la consulta de metricas para soportar reintentos desde la UI.
+    _metricsService.requestMetricsRefresh();
   }
 
   BoxDecoration _heroHeaderDecoration() {
@@ -102,7 +118,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  List<_StatCardData> _buildStatCards(
+  List<StatCardData> _buildStatCards(
     DashboardMetrics? metrics,
     bool isLoading,
     bool hasError,
@@ -110,8 +126,8 @@ class _HomePageState extends State<HomePage>
     final shouldShowLoader = isLoading && !hasError;
     final retryCallback = hasError ? _refreshMetrics : null;
 
-    return <_StatCardData>[
-      _StatCardData(
+    return <StatCardData>[
+      StatCardData(
         icon: Icons.route,
         title: 'Rutas',
         value: metrics != null ? '${metrics.routes} activas' : null,
@@ -120,7 +136,7 @@ class _HomePageState extends State<HomePage>
         hasError: hasError,
         onRetry: retryCallback,
       ),
-      _StatCardData(
+      StatCardData(
         icon: Icons.place,
         title: 'POIs',
         value: metrics != null ? '${metrics.pois} registrados' : null,
@@ -129,16 +145,16 @@ class _HomePageState extends State<HomePage>
         hasError: hasError,
         onRetry: retryCallback,
       ),
-      _StatCardData(
+      StatCardData(
         icon: Icons.category,
-        title: 'Categorías',
+        title: 'Categorias',
         value: metrics != null ? '${metrics.categories} totales' : null,
         color: const Color(0xFF26A69A),
         isLoading: shouldShowLoader,
         hasError: hasError,
         onRetry: retryCallback,
       ),
-      _StatCardData(
+      StatCardData(
         icon: Icons.directions_walk,
         title: 'Actividades',
         value: metrics != null ? '${metrics.activities} disponibles' : null,
@@ -188,15 +204,18 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // ======= HERO HEADER (con métricas integradas) =============================
+  // ======= HERO HEADER (con metricas integradas) =============================
   Widget _buildHeroHeader() {
-    return FutureBuilder<DashboardMetrics>(
-      future: _metricsFuture,
+    return StreamBuilder<DashboardMetrics>(
+      stream: _metricsStream,
       builder: (context, snapshot) {
-        final bool isWaiting = snapshot.connectionState == ConnectionState.waiting ||
-            snapshot.connectionState == ConnectionState.active;
         final bool hasError = snapshot.hasError;
-        final stats = _buildStatCards(snapshot.data, isWaiting, hasError);
+        final bool hasData = snapshot.hasData && !hasError;
+        final bool isWaiting = !hasData &&
+            !hasError &&
+            snapshot.connectionState != ConnectionState.done;
+        final DashboardMetrics? metrics = hasData ? snapshot.data : null;
+        final stats = _buildStatCards(metrics, isWaiting, hasError);
 
         return Container(
           width: double.infinity,
@@ -212,10 +231,10 @@ class _HomePageState extends State<HomePage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Text('Bienvenido a Rutas 360°', style: _headerTitleStyle),
+                        Text('Bienvenido a Rutas 360', style: _headerTitleStyle),
                         SizedBox(height: 6),
                         Text(
-                          'Gestiona rutas, puntos de interés, categorías y actividades desde un solo lugar.',
+                          'Gestiona rutas, puntos de interes, categorias y actividades desde un solo lugar.',
                           style: _headerSubtitleStyle,
                         ),
                       ],
@@ -264,8 +283,8 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // ======= CARD DE MÉTRICA (dentro del hero) ================================
-  Widget _buildStatCard(_StatCardData data) {
+  // ======= CARD DE METRICA (dentro del hero) ================================
+  Widget _buildStatCard(StatCardData data) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
@@ -303,7 +322,7 @@ class _HomePageState extends State<HomePage>
                   )
                 else if (data.hasError)
                   Row(
-                    // Presenta un mensaje contextual y permite reintentar sin romper la estética original.
+                    // Presenta un mensaje contextual y permite reintentar sin romper la estetica original.
 
                     children: [
                       const Icon(
@@ -314,7 +333,7 @@ class _HomePageState extends State<HomePage>
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'No pudimos cargar las métricas',
+                          'No pudimos cargar las metricas',
                           style: _statErrorStyle,
                         ),
                       ),
@@ -333,7 +352,7 @@ class _HomePageState extends State<HomePage>
                   )
                 else
                   Text(
-                    data.value ?? '0',
+                    data.value ?? '\u2014',
                     style: _statValueStyle,
                   ),
               ],
@@ -346,29 +365,29 @@ class _HomePageState extends State<HomePage>
 
   // ======= GRID PRINCIPAL (CRUD) ============================================
   Widget _buildDashboardGrid(BuildContext context) {
-    final items = <_DashItem>[
-      _DashItem(
+    final items = <DashItem>[
+      DashItem(
         title: "Rutas",
         subtitle: "Crea y administra rutas interactivas.",
         icon: Icons.route_rounded,
         color: mainColor,
         onTap: () => context.go('/rutas'),
       ),
-      _DashItem(
-        title: "Puntos de Interés",
+      DashItem(
+        title: "Puntos de Interes",
         subtitle: "Agrega y gestiona los POIs del mapa.",
         icon: Icons.place_rounded,
         color: const Color(0xFF7E57C2),
         onTap: () => context.go('/pois'),
       ),
-      _DashItem(
-        title: "Categorías",
+      DashItem(
+        title: "Categorias",
         subtitle: "Clasifica y organiza el contenido del sistema.",
         icon: Icons.category_rounded,
         color: const Color(0xFF26A69A),
         onTap: () => context.go('/categorias'),
       ),
-      _DashItem(
+      DashItem(
         title: "Actividades",
         subtitle: "Define actividades disponibles para los usuarios.",
         icon: Icons.directions_walk_rounded,
@@ -404,7 +423,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildDashboardCard(_DashItem item) {
+  Widget _buildDashboardCard(DashItem item) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       decoration: BoxDecoration(
@@ -502,42 +521,4 @@ class _HomePageState extends State<HomePage>
       ),
     );
   }
-}
-
-
-// ======= MODELOS AUXILIARES ==================================================
-class _DashItem {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  _DashItem({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-}
-
-class _StatCardData {
-  const _StatCardData({
-    required this.icon,
-    required this.title,
-    this.value,
-    required this.color,
-    this.isLoading = false,
-    this.hasError = false,
-    this.onRetry,
-  });
-
-  final IconData icon;
-  final String title;
-  final String? value;
-  final Color color;
-  final bool isLoading;
-  final bool hasError;
-  final VoidCallback? onRetry;
 }

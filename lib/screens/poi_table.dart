@@ -30,250 +30,300 @@ class _PoiTableState extends State<PoiTable> {
       listener: (context, state) {
         if (state is PoiLoadedWithSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.green),
           );
         } else if (state is PoiError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.error), backgroundColor: Colors.red),
+            SnackBar(
+                content: Text(state.error),
+                backgroundColor: Colors.red),
           );
         }
       },
       builder: (context, state) {
         if (state is PoiLoaded || state is PoiLoadedWithSuccess) {
-          final List<POI> pois =
-              state is PoiLoaded ? state.pois : (state as PoiLoadedWithSuccess).pois;
+          final List<POI> pois = state is PoiLoaded
+              ? state.pois
+              : (state as PoiLoadedWithSuccess).pois;
 
-          // Alturas coherentes con tu TablaRutas
-          const double rowHeight = 56.0;
-          const double headerHeight = 50.0;
-          final double tableHeight = headerHeight + (pois.length * rowHeight);
+          const double rowHeight = 60.0;
+          const double headerHeight = 52.0;
+          final double tableHeight =
+              headerHeight + (pois.length * rowHeight);
 
-          // Config base
-          const double columnSpacing = 16.0; // 8 gaps entre 9 columnas
-          const double innerHPadding = 12.0; // padding horizontal dentro del DataTable
-
-          // Mínimos por columna (garantizan visibilidad; Acciones nunca se corta)
-          const double minNombre = 120;
-          const double minDesc   = 150; // ES, EN, PT
-          const double minCoord  = 75;  // Lat, Long
-          const double minCats   = 130;
-          const double minActs   = 130;
-          const double minAcc    = 100; // Acciones
-
-          // Pesos para repartir el “extra” (sin huecos irregulares)
-          // Ajustados para que Actividades no se vea más ancha que Categorías.
-          const double wNombre = 0.10;
-          const double wDescEs = 0.18;
-          const double wDescEn = 0.18;
-          const double wDescPt = 0.18;
-          const double wCats   = 0.12;
-          const double wActs   = 0.08;
-
-          return Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Encabezado
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
+          return Scaffold(
+            backgroundColor: const Color(0xFFF9FAFB),
+            body: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 40.0, vertical: 30.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ====== HEADER ======
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "Puntos de Interés",
-                          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                      children: [
+                        Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  "Puntos de Interés",
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF202124),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  "Gestiona los puntos de interés del sistema",
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () =>
+                                  context.go('/pois/create'),
+                              icon: const Icon(Icons.add_rounded,
+                                  color: Colors.white, size: 18),
+                              label: const Text(
+                                "Agregar POI",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    const Color(0xFF4D67AE),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(10),
+                                ),
+                                elevation: 3,
+                                shadowColor: const Color(0xFF4D67AE)
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          "Gestiona los puntos de interés del sistema",
-                          style: TextStyle(color: Colors.black54),
+                        const SizedBox(height: 16),
+                        Container(
+                          height: 1,
+                          color: Colors.grey.withValues(alpha: 0.2),
                         ),
                       ],
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () => context.go('/pois/create'),
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text("Agregar POI", style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4D67AE),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
+                  ),
+
+                  // ====== BARRA CONTEXTUAL ======
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 28),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(8),
+                      border:
+                          Border.all(color: Colors.grey.shade300),
                     ),
-                  ],
-                ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.info_outline,
+                            color: Color(0xFF4D67AE), size: 18),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            "Aquí puedes crear, editar o eliminar puntos de interés. "
+                            "Cada POI puede tener descripciones en varios idiomas, coordenadas y categorías asociadas.",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                const SizedBox(height: 20),
-
-                // Card + tabla que llena EXACTO el ancho disponible (sin huecos)
-                Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 2,
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: tableHeight,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Ancho útil total que deben sumar las columnas
-                        final double available =
-                            constraints.maxWidth - innerHPadding * 2 - columnSpacing * 8;
-
-                        // Suma de mínimos
-                        final double sumMins = minNombre + minDesc * 3 + minCoord * 2 + minCats + minActs + minAcc;
-
-                        // Extra a repartir (si hay)
-                        final double extra = (available - sumMins).clamp(0, double.infinity);
-
-                        const double totalWeight =
-                            wNombre + wDescEs + wDescEn + wDescPt + wCats + wActs;
-
-                        double grow(double w) =>
-                            totalWeight == 0 ? 0 : extra * (w / totalWeight);
-
-                        // Cálculo final de anchos: suman EXACTAMENTE "available"
-                        final double widthNombre = minNombre + grow(wNombre);
-                        final double widthDescEs = minDesc   + grow(wDescEs);
-                        final double widthDescEn = minDesc   + grow(wDescEn);
-                        final double widthDescPt = minDesc   + grow(wDescPt);
-                        final double widthLat    = minCoord; // fijo
-                        final double widthLng    = minCoord; // fijo
-                        final double widthCats   = minCats   + grow(wCats);
-                        final double widthActs   = minActs   + grow(wActs);
-                        final double widthAcc    = minAcc;   // fijo
-
-                        return DataTableTheme(
+                  // ====== TABLA DE POIs ======
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: tableHeight,
+                        child: DataTableTheme(
                           data: DataTableThemeData(
                             headingRowHeight: headerHeight,
                             dataRowMinHeight: rowHeight,
                             dataRowMaxHeight: rowHeight,
-                            // Usa MaterialStateProperty para compatibilidad amplia
                             headingRowColor:
-                                MaterialStateProperty.all<Color>(const Color(0xFFF3F4F6)),
+                                MaterialStateProperty.all(
+                                    const Color(0xFFF5F6F7)),
+                            headingTextStyle: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF4D67AE),
+                              fontSize: 14,
+                            ),
+                            dataTextStyle: const TextStyle(
+                              fontSize: 13.5,
+                              color: Color(0xFF1F1F1F),
+                            ),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: innerHPadding),
-                            child: DataTable(
-                              columnSpacing: columnSpacing,
-                              border: TableBorder(
-                                horizontalInside:
-                                    BorderSide(width: 0.3, color: Colors.grey.shade300),
+                          child: DataTable(
+                            columnSpacing: 22,
+                            horizontalMargin: 22,
+                            border: TableBorder(
+                              horizontalInside: BorderSide(
+                                width: 0.4,
+                                color: Colors.grey.shade300,
                               ),
-                              columns: const [
-                                DataColumn(label: Text('Nombre')),
-                                DataColumn(label: Text('Descripción (ES)')),
-                                DataColumn(label: Text('Descripción (EN)')),
-                                DataColumn(label: Text('Descripción (PT)')),
-                                DataColumn(label: Text('Latitud')),
-                                DataColumn(label: Text('Longitud')),
-                                DataColumn(label: Text('Categorías')),
-                                DataColumn(label: Text('Actividades')),
-                                DataColumn(label: Text('Acciones')),
-                              ],
-                              rows: pois.map((poi) {
+                            ),
+                            columns: const [
+                              DataColumn(label: Text('Nombre')),
+                              DataColumn(label: Text('Descripción (ES)')),
+                              DataColumn(label: Text('Latitud')),
+                              DataColumn(label: Text('Longitud')),
+                              DataColumn(label: Text('Categorías')),
+                              DataColumn(label: Text('Actividades')),
+                              DataColumn(label: Text('Acciones')),
+                            ],
+                            rows: List<DataRow>.generate(
+                              pois.length,
+                              (index) {
+                                final poi = pois[index];
+                                final Color zebraColor = index.isEven
+                                    ? Colors.white
+                                    : const Color(0xFFF9FAFB);
+
                                 return DataRow(
+                                  color: MaterialStateProperty
+                                      .resolveWith<Color?>(
+                                    (Set<MaterialState> states) {
+                                      if (states.contains(
+                                          MaterialState.hovered)) {
+                                        return const Color(0xFF4D67AE)
+                                            .withValues(alpha: 0.08);
+                                      }
+                                      return zebraColor;
+                                    },
+                                  ),
                                   cells: [
-                                    DataCell(SizedBox(
-                                      width: widthNombre,
-                                      child: Text(poi.nombre, overflow: TextOverflow.ellipsis),
+                                    DataCell(Text(
+                                      poi.nombre,
+                                      overflow:
+                                          TextOverflow.ellipsis,
                                     )),
-                                    DataCell(SizedBox(
-                                      width: widthDescEs,
-                                      child: Text(
-                                        (poi.descripcion["es"] ?? '').toString(),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 2,
-                                      ),
+                                    DataCell(Text(
+                                      (poi.descripcion["es"] ?? "")
+                                          .toString(),
+                                      overflow:
+                                          TextOverflow.ellipsis,
+                                      maxLines: 2,
                                     )),
-                                    DataCell(SizedBox(
-                                      width: widthDescEn,
-                                      child: Text(
-                                        (poi.descripcion["en"] ?? '').toString(),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 2,
-                                      ),
+                                    DataCell(Text(
+                                        poi.latitud
+                                            .toStringAsFixed(5),
+                                        overflow:
+                                            TextOverflow.ellipsis)),
+                                    DataCell(Text(
+                                        poi.longitud
+                                            .toStringAsFixed(5),
+                                        overflow:
+                                            TextOverflow.ellipsis)),
+                                    DataCell(Text(
+                                      poi.categorias
+                                          .map((e) => (e.nombre["es"] ?? "")
+                                              .toString())
+                                          .where((s) => s.isNotEmpty)
+                                          .join(', '),
+                                      overflow:
+                                          TextOverflow.ellipsis,
+                                      maxLines: 2,
                                     )),
-                                    DataCell(SizedBox(
-                                      width: widthDescPt,
-                                      child: Text(
-                                        (poi.descripcion["pt"] ?? '').toString(),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 2,
-                                      ),
+                                    DataCell(Text(
+                                      poi.actividades
+                                          .map((e) => (e.nombre["es"] ?? "")
+                                              .toString())
+                                          .where((s) => s.isNotEmpty)
+                                          .join(', '),
+                                      overflow:
+                                          TextOverflow.ellipsis,
+                                      maxLines: 2,
                                     )),
-                                    DataCell(SizedBox(
-                                      width: widthLat,
-                                      child: Text(
-                                        poi.latitud.toStringAsFixed(5),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    )),
-                                    DataCell(SizedBox(
-                                      width: widthLng,
-                                      child: Text(
-                                        poi.longitud.toStringAsFixed(5),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    )),
-                                    DataCell(SizedBox(
-                                      width: widthCats,
-                                      child: Text(
-                                        poi.categorias
-                                            .map((e) => (e.nombre["es"] ?? '').toString())
-                                            .where((s) => s.isNotEmpty)
-                                            .join(', '),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 2,
-                                      ),
-                                    )),
-                                    DataCell(SizedBox(
-                                      width: widthActs,
-                                      child: Text(
-                                        poi.actividades
-                                            .map((e) => (e.nombre["es"] ?? '').toString())
-                                            .where((s) => s.isNotEmpty)
-                                            .join(', '),
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 2,
-                                      ),
-                                    )),
-                                    DataCell(SizedBox(
-                                      width: widthAcc,
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.start,
-                                        children: [
-                                          IconButton(
-                                            tooltip: "Editar",
-                                            icon: const Icon(Icons.edit, color: Color(0xFF4D67AE)),
-                                            onPressed: () => context.go(
-                                              '/pois/edit/${poi.id}',
-                                              extra: poi,
-                                            ),
+                                    DataCell(Row(
+                                      children: [
+                                        IconButton(
+                                          tooltip: "Editar",
+                                          icon: const Icon(
+                                              Icons.edit_outlined,
+                                              color:
+                                                  Color(0xFF4D67AE)),
+                                          onPressed: () =>
+                                              context.go(
+                                            '/pois/edit/${poi.id}',
+                                            extra: poi,
                                           ),
-                                          IconButton(
-                                            tooltip: "Eliminar",
-                                            icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                            onPressed: () =>
-                                                fnDeletePOI(poi.id, poi.routeId, context),
-                                          ),
-                                        ],
-                                      ),
+                                        ),
+                                        IconButton(
+                                          tooltip: "Eliminar",
+                                          icon: const Icon(
+                                              Icons.delete_outline,
+                                              color:
+                                                  Colors.redAccent),
+                                          onPressed: () =>
+                                              fnDeletePOI(
+                                                  poi.id,
+                                                  poi.routeId,
+                                                  context),
+                                        ),
+                                      ],
                                     )),
                                   ],
                                 );
-                              }).toList(),
+                              },
                             ),
                           ),
-                        );
-                      },
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         } else if (state is PoiError) {
-          return Center(child: Text('Error al cargar POIs: ${state.error}'));
+          return Center(
+              child:
+                  Text('Error al cargar POIs: ${state.error}'));
         } else {
           return const LoadingMessage();
         }
@@ -285,9 +335,16 @@ class _PoiTableState extends State<PoiTable> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Confirmar eliminación'),
-        content: const Text('¿Estás seguro de que deseas eliminar este punto de interés?'),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        title: const Text(
+          'Eliminar POI',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        content: const Text(
+          '¿Seguro que deseas eliminar este punto de interés?',
+          style: TextStyle(fontSize: 14),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -295,10 +352,12 @@ class _PoiTableState extends State<PoiTable> {
           ),
           TextButton(
             onPressed: () {
-              BlocProvider.of<PoiBloc>(context).add(DeletePOI(route, id));
+              BlocProvider.of<PoiBloc>(context)
+                  .add(DeletePOI(route, id));
               Navigator.of(context).pop();
             },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: const Text('Eliminar',
+                style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),

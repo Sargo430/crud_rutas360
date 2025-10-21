@@ -8,8 +8,8 @@ import 'package:crud_rutas360/services/storage_service.dart';
 import 'package:file_picker/file_picker.dart';
 
 class FireStoreService {
-  final CollectionReference _routesCollection = FirebaseFirestore.instance 
-      .collection('ruta'); 
+  final CollectionReference<Map<String, dynamic>> _routesCollection =
+      FirebaseFirestore.instance.collection('ruta');
   // OPTIMIZACION: caches en memoria para reutilizar categorias y actividades ya consultadas.
   final Map<String, PoiCategory> _categoryCache = {};
   final Map<String, Activity> _activityCache = {};
@@ -19,23 +19,42 @@ class FireStoreService {
 
   Future<List<POI>> fetchAllPOIs() async {
     try {
-      final routeQuerySnapshot = await FirebaseFirestore.instance
-          .collection('ruta')
-          .get();
-      // OPTIMIZACION: preparamos estructuras temporales para resolver relaciones sin disparar consultas por POI.
+      final routeQuerySnapshot = await _routesCollection.get();
+      if (routeQuerySnapshot.docs.isEmpty) {
+        return [];
+      }
+
+      final batches = await Future.wait(
+        routeQuerySnapshot.docs.map((routeDoc) async {
+          final poiSnapshot = await routeDoc.reference.collection('poi').get();
+          final routeData = routeDoc.data();
+          final poiDocs = poiSnapshot.docs
+              .map(
+                (doc) => {
+                  'id': doc.id,
+                  'data': doc.data(),
+                },
+              )
+              .toList();
+          return {
+            'routeId': routeDoc.id,
+            'routeName': routeData['nombre']?.toString() ?? '',
+            'poiDocs': poiDocs,
+          };
+        }),
+      );
+
       final List<Map<String, dynamic>> rawPois = [];
       final Set<String> categoryIds = {};
       final Set<String> activityIds = {};
 
-      for (var routeDoc in routeQuerySnapshot.docs) {
-        final routeData = routeDoc.data();
-        final poiCollection = await _routesCollection
-            .doc(routeDoc.id)
-            .collection('poi')
-            .get();
-
-        for (var doc in poiCollection.docs) {
-          final data = doc.data();
+      for (final batch in batches) {
+        final routeId = batch['routeId'] as String;
+        final routeName = batch['routeName'] as String;
+        final poiDocs =
+            List<Map<String, dynamic>>.from(batch['poiDocs'] as List);
+        for (final doc in poiDocs) {
+          final data = Map<String, dynamic>.from(doc['data'] as Map<String, dynamic>);
           final categoriasIds =
               List<String>.from((data['categoria'] ?? const <String>[]));
           final actividadesIds =
@@ -53,9 +72,9 @@ class FireStoreService {
           );
 
           rawPois.add({
-            'id': doc.id,
-            'routeId': routeDoc.id,
-            'routeName': routeData['nombre']?.toString() ?? '',
+            'id': doc['id'] as String,
+            'routeId': routeId,
+            'routeName': routeName,
             'data': data,
             'categoriaIds': categoriasIds,
             'actividadIds': actividadesIds,
@@ -67,7 +86,6 @@ class FireStoreService {
         return [];
       }
 
-      // OPTIMIZACION: resolvemos los catalogos pendientes en una sola llamada por tipo.
       final categoriesFuture = _fetchCategoryMap(categoryIds);
       final activitiesFuture = _fetchActivityMap(activityIds);
       final categoriesById = await categoriesFuture;
@@ -103,7 +121,6 @@ class FireStoreService {
         );
       }).toList();
     } catch (e) {
-  
       throw Exception('Error fetching POIs: $e');
     }
   }
@@ -377,7 +394,7 @@ class FireStoreService {
       final List<MapRoute> routes = [];
       for (var i = 0; i < docs.length; i++) {
         final doc = docs[i];
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         final pois = poisPerRoute[i];
         routes.add(
           MapRoute(
@@ -517,8 +534,8 @@ class FireStoreService {
     return _routesCollection.doc(routeId).delete();
   }
 
-  Future<List<PoiCategory>> fetchAllCategories() async {
-    if (_cachedCategoryList != null) {
+  Future<List<PoiCategory>> fetchAllCategories({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedCategoryList != null) {
       // OPTIMIZACION: devolvemos una copia de la cache para evitar reconsultas completas.
       return List<PoiCategory>.from(_cachedCategoryList!);
     }
@@ -635,8 +652,8 @@ class FireStoreService {
     }
   }
 
-  Future<List<Activity>> fetchAllActivities() async {
-    if (_cachedActivityList != null) {
+  Future<List<Activity>> fetchAllActivities({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedActivityList != null) {
       // OPTIMIZACION: reutilizamos la lista cacheada para evitar lecturas completas.
       return List<Activity>.from(_cachedActivityList!);
     }
@@ -789,7 +806,7 @@ class FireStoreService {
       final querySnapshot = await _routesCollection.get();
       List<MapRoute> routes = [];
       for (var doc in querySnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
 
         routes.add(
           MapRoute(
@@ -809,5 +826,4 @@ class FireStoreService {
     }
   }
 
-  
 }
