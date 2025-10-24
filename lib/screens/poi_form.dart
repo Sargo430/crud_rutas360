@@ -60,7 +60,8 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   // Estados de validación visual por pestaña
   bool _errorDatos = false;
   bool _errorMultimedia = false;
-  bool _errorAsignaciones = false; // se mantiene para UI, pero no se marcará en rojo
+  bool _errorAsignaciones =
+      false; // se mantiene para UI, pero no se marcará en rojo
 
   @override
   void initState() {
@@ -82,7 +83,10 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
     // Listeners para refrescar preview en tiempo real
     for (final c in [_name, _descEs, _descEn, _descPt, _lat, _long]) {
       c.addListener(() {
-        if (_errorDatos) setState(() {}); else setState(() {});
+        if (_errorDatos)
+          setState(() {});
+        else
+          setState(() {});
       });
     }
     _categoryCtrl.addListener(() => setState(() {}));
@@ -155,9 +159,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
         _pendingCategoryIds!.isNotEmpty &&
         _categoryCtrl.items.isNotEmpty) {
       final ids = _pendingCategoryIds!;
-      _categoryCtrl.selectWhere(
-        (item) => ids.contains(item.value.id),
-      );
+      _categoryCtrl.selectWhere((item) => ids.contains(item.value.id));
       if (_categoryCtrl.selectedItems.isNotEmpty) {
         _pendingCategoryIds = null;
         updated = true;
@@ -168,9 +170,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
         _pendingActivityIds!.isNotEmpty &&
         _activityCtrl.items.isNotEmpty) {
       final ids = _pendingActivityIds!;
-      _activityCtrl.selectWhere(
-        (item) => ids.contains(item.value.id),
-      );
+      _activityCtrl.selectWhere((item) => ids.contains(item.value.id));
       if (_activityCtrl.selectedItems.isNotEmpty) {
         _pendingActivityIds = null;
         updated = true;
@@ -196,13 +196,15 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
     List<DropdownItem<T>> items,
     String Function(T value) trackBy,
   ) {
-    final currentKeys =
-        controller.items.map((item) => trackBy(item.value)).toList();
+    final currentKeys = controller.items
+        .map((item) => trackBy(item.value))
+        .toList();
     final newKeys = items.map((item) => trackBy(item.value)).toList();
     if (_listsEqual(currentKeys, newKeys)) return;
 
-    final selectedKeys =
-        controller.selectedItems.map((item) => trackBy(item.value)).toSet();
+    final selectedKeys = controller.selectedItems
+        .map((item) => trackBy(item.value))
+        .toSet();
     controller.setItems(items);
     if (selectedKeys.isNotEmpty) {
       controller.selectWhere(
@@ -223,11 +225,16 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   String? _fileNameFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
-      final segments = uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+      final segments = uri.pathSegments
+          .where((segment) => segment.isNotEmpty)
+          .toList();
       if (segments.isNotEmpty) {
         return segments.last;
       }
-      final fallback = url.split('/').where((segment) => segment.isNotEmpty).toList();
+      final fallback = url
+          .split('/')
+          .where((segment) => segment.isNotEmpty)
+          .toList();
       return fallback.isNotEmpty ? fallback.last : null;
     } catch (_) {
       return null;
@@ -329,12 +336,17 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
               labelText: 'Nombre del Punto de Interés',
               border: OutlineInputBorder(),
             ),
-            validator: (v) =>
-                InputValidators.validateTextField(v, emptyMessage: 'Campo requerido'),
+            validator: (v) => InputValidators.validateTextField(
+              v,
+              emptyMessage: 'Campo requerido',
+            ),
           ),
         ),
         const SizedBox(height: 24),
-        _section("Descripciones del Punto de Interés", _buildDescripcionFields()),
+        _section(
+          "Descripciones del Punto de Interés",
+          _buildDescripcionFields(),
+        ),
         const SizedBox(height: 24),
         _section(
           "Ubicación",
@@ -417,7 +429,10 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
           decoration: BoxDecoration(color: mainColor, shape: BoxShape.circle),
           child: Text(
             code,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         Expanded(
@@ -443,7 +458,8 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   // ======================= TAB 2: MULTIMEDIA =======================
   Widget _tabMultimedia(BuildContext context, POI? poi) {
     final String? mainImageUrl =
-        _existingImageUrl ?? ((poi?.imagen ?? '').isNotEmpty ? poi!.imagen : null);
+        _existingImageUrl ??
+        ((poi?.imagen ?? '').isNotEmpty ? poi!.imagen : null);
 
     return ListView(
       children: [
@@ -496,7 +512,9 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
               setState(() => _errorMultimedia = true);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('La imagen principal es obligatoria (máx. 10 MB).'),
+                  content: Text(
+                    'La imagen principal es obligatoria (máx. 10 MB).',
+                  ),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -514,14 +532,10 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   // ======================= TAB 3: ASIGNACIONES =======================
   Widget _tabAsignaciones(BuildContext context, PoiFormState state, POI? poi) {
     final categoryItems = state.categories
-        .map(
-          (e) => DropdownItem(label: e.nombre['es'], value: e),
-        )
+        .map((e) => DropdownItem(label: e.nombre['es'], value: e))
         .toList();
     final activityItems = state.activities
-        .map(
-          (e) => DropdownItem(label: e.nombre['es'], value: e),
-        )
+        .map((e) => DropdownItem(label: e.nombre['es'], value: e))
         .toList();
 
     _syncControllerItems<PoiCategory>(
@@ -569,8 +583,9 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
           "Ruta Asociada",
           DropdownMenu<String>(
             expandedInsets: EdgeInsets.zero,
-            initialSelection:
-                state.routes.any((r) => r.id == _route) ? _route : null,
+            initialSelection: state.routes.any((r) => r.id == _route)
+                ? _route
+                : null,
             dropdownMenuEntries: state.routes
                 .map((r) => DropdownMenuEntry(value: r.id, label: r.name))
                 .toList(),
@@ -587,7 +602,9 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Por favor completa los campos obligatorios antes de continuar.'),
+                  content: Text(
+                    'Por favor completa los campos obligatorios antes de continuar.',
+                  ),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -602,7 +619,8 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   // ======================= VALIDACIÓN GLOBAL POR TABS =======================
   bool _validateTabs(POI? poi) {
     final datosValid = _formKey.currentState!.validate();
-    final multimediaValid = poi != null || _img != null; // si es edición, se permite null
+    final multimediaValid =
+        poi != null || _img != null; // si es edición, se permite null
 
     setState(() {
       _errorDatos = !datosValid;
@@ -615,25 +633,28 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
 
   // ======================= SECCIÓN GENÉRICA =======================
   Widget _section(String title, Widget child) => Container(
-        padding: const EdgeInsets.all(20),
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF7F4FB),
-          borderRadius: BorderRadius.circular(12),
-          border: Border(left: BorderSide(color: mainColor, width: 4)),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2))
-          ],
+    padding: const EdgeInsets.all(20),
+    margin: const EdgeInsets.only(bottom: 16),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF7F4FB),
+      borderRadius: BorderRadius.circular(12),
+      border: Border(left: BorderSide(color: mainColor, width: 4)),
+      boxShadow: const [
+        BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
-      );
+        const SizedBox(height: 12),
+        child,
+      ],
+    ),
+  );
 
   // ======================= PICKERS Y HELPERS =======================
   Future<PlatformFile?> _pickImageWithValidation(BuildContext context) async {
@@ -652,7 +673,9 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
       if (file.size > _maxImageBytes) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('La imagen supera el tamaño máximo permitido (10 MB).'),
+            content: Text(
+              'La imagen supera el tamaño máximo permitido (10 MB).',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -677,7 +700,8 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
     String? previewUrl,
   }) {
     final hasFile = file != null;
-    final hasPreviewUrl = !hasFile && previewUrl != null && previewUrl.isNotEmpty;
+    final hasPreviewUrl =
+        !hasFile && previewUrl != null && previewUrl.isNotEmpty;
     final selectedFileName = file?.name;
     final existingUrl = previewUrl;
 
@@ -687,9 +711,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
         "Imagen seleccionada: $selectedFileName",
         icon: Icons.check_circle_outline,
       );
-    } else if (hasPreviewUrl &&
-        existingUrl != null &&
-        existingUrl.isNotEmpty) {
+    } else if (hasPreviewUrl && existingUrl != null && existingUrl.isNotEmpty) {
       final fileName = _fileNameFromUrl(existingUrl) ?? 'disponible';
       statusIndicator = _imageStatusChip(
         "Imagen actual: $fileName",
@@ -709,7 +731,9 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
             foregroundColor: Colors.white,
             textStyle: const TextStyle(fontWeight: FontWeight.w600),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
           ),
           onPressed: () async {
             final selected = await _pickImageWithValidation(context);
@@ -739,7 +763,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: mainColor.withOpacity(0.3)),
+          side: BorderSide(color: mainColor.withValues(alpha: 0.3)),
         ),
         textColor: mainColor,
         iconColor: mainColor,
@@ -787,7 +811,12 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _actionButton(String text, VoidCallback onPressed, Color bg, Color fg) {
+  Widget _actionButton(
+    String text,
+    VoidCallback onPressed,
+    Color bg,
+    Color fg,
+  ) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 180, minHeight: 45),
       child: ElevatedButton(
@@ -795,7 +824,9 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
           backgroundColor: bg,
           foregroundColor: fg,
           textStyle: const TextStyle(fontWeight: FontWeight.w600),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         onPressed: onPressed,
         child: Text(text),
@@ -843,7 +874,7 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
   // ======================= SUBMIT (MISMA LÓGICA) =======================
   void _submit(POI? poi) {
     final newPoi = POI(
-      routeId: _route,
+      routeId: _route == 'sin_asignar' ? null : _route, // ✅ Cambio clave aquí
       id: poi?.id ?? '',
       nombre: _name.text,
       descripcion: {'es': _descEs.text, 'en': _descEn.text, 'pt': _descPt.text},
@@ -870,16 +901,12 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
       );
     } else {
       context.read<PoiBloc>().add(
-        AddPOI(
-          newPoi,
-          _img!,
-          {
-            'Invierno': _winter,
-            'Primavera': _spring,
-            'Verano': _summer,
-            'Otoño': _autumn,
-          },
-        ),
+        AddPOI(newPoi, _img!, {
+          'Invierno': _winter,
+          'Primavera': _spring,
+          'Verano': _summer,
+          'Otoño': _autumn,
+        }),
       );
     }
   }

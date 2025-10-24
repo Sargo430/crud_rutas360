@@ -205,19 +205,18 @@ class FireStoreService {
 
   Future<void> addPOI(
     POI poi,
-    String routeId,
+    String? routeId, // 👈 ahora acepta null
     PlatformFile? image,
     Map<String, PlatformFile?>? new360views,
   ) async {
     try {
-      // Upload main image only if provided with bytes; else keep empty string
+      // Subir imagen principal
       String imageUrl = '';
       if (image != null && image.bytes != null && image.bytes!.isNotEmpty) {
-        final baseName = image.name;
         final ext = image.extension ?? 'jpg';
-        final normalized = baseName.toLowerCase().endsWith('.$ext')
-            ? baseName
-            : '$baseName.$ext';
+        final normalized = image.name.toLowerCase().endsWith('.$ext')
+            ? image.name
+            : '${image.name}.$ext';
         imageUrl = await StorageService().uploadBytes(
           image.bytes!,
           normalized,
@@ -225,7 +224,7 @@ class FireStoreService {
         );
       }
 
-      // Upload seasonal 360 only if bytes present; else empty string
+      // Subir vistas 360
       Future<String> uploadOrEmpty(PlatformFile? f, String fallbackName) async {
         if (f != null && f.bytes != null && f.bytes!.isNotEmpty) {
           final ext = f.extension ?? 'jpg';
@@ -238,7 +237,7 @@ class FireStoreService {
         return '';
       }
 
-      final Map<String, String> vistas360Urls = {
+      final vistas360Urls = {
         'Invierno': await uploadOrEmpty(new360views?['Invierno'], 'invierno'),
         'Primavera': await uploadOrEmpty(
           new360views?['Primavera'],
@@ -248,9 +247,14 @@ class FireStoreService {
         'Otoño': await uploadOrEmpty(new360views?['Otoño'], 'otono'),
       };
 
+      // ✅ Si no tiene ruta asignada, se guarda en "sin_asignar"
+      final targetRouteId = (routeId == null || routeId.isEmpty)
+          ? 'sin_asignar'
+          : routeId;
+
       await FirebaseFirestore.instance
           .collection('ruta')
-          .doc(routeId)
+          .doc(targetRouteId)
           .collection('poi')
           .add({
             'nombre': poi.nombre,
@@ -269,43 +273,79 @@ class FireStoreService {
 
   Future<void> updatePOI(
     POI poi,
-    String routeId, {
+    String? routeId, { // 👈 acepta null
     PlatformFile? image,
     Map<String, PlatformFile?>? new360views,
   }) async {
     try {
-      final docRef = FirebaseFirestore.instance
+      // ✅ Si no tiene ruta asignada, se guarda/actualiza en "sin_asignar"
+      final targetRouteId = (routeId == null || routeId.isEmpty)
+          ? 'sin_asignar'
+          : routeId;
+      final targetCollection = FirebaseFirestore.instance
           .collection('ruta')
-          .doc(routeId)
-          .collection('poi')
-          .doc(poi.id);
+          .doc(targetRouteId)
+          .collection('poi');
 
-      final snapshot = await docRef.get();
+      var docRef = targetCollection.doc(poi.id);
+
+      var snapshot = await docRef.get();
+
+      Map<String, dynamic>? data;
+
+      // Si no existe en la colección destino, intentamos localizar el POI en
+      // cualquier ruta (incluida 'sin_asignar') y moverlo al destino antes de
+      // proceder. Esto evita lanzar excepción cuando el POI existe pero en otra
+      // colección.
       if (!snapshot.exists) {
-        throw Exception('POI not found for update');
+        // Busca el POI en todas las rutas
+        final existing = await fetchPoiById(poi.id);
+        if (existing != null && existing.routeId != null) {
+          final sourceRouteId = existing.routeId!.isNotEmpty
+              ? existing.routeId!
+              : 'sin_asignar';
+          final sourceDocRef = FirebaseFirestore.instance
+              .collection('ruta')
+              .doc(sourceRouteId)
+              .collection('poi')
+              .doc(poi.id);
+
+          final sourceSnapshot = await sourceDocRef.get();
+          if (sourceSnapshot.exists) {
+            data = Map<String, dynamic>.from(sourceSnapshot.data() as Map);
+
+            // Copiar documento al destino con el mismo id
+            await docRef.set(data);
+
+            // Borrar origen
+            await sourceDocRef.delete();
+
+            // Refrescar snapshot apuntando al destino
+            snapshot = await docRef.get();
+          }
+        }
+
+        // Si aun así no existe, no fallamos: inicializamos data vacío para
+        // poder crear/actualizar el documento con los campos proporcionados.
+        if (!snapshot.exists) {
+          data = <String, dynamic>{};
+        }
+      } else {
+        data = snapshot.data() as Map<String, dynamic>;
       }
-      final data = snapshot.data() as Map<String, dynamic>;
+  String currentImageUrl = (data?['imagen'] ?? '').toString();
+  final currentVistas = Map<String, dynamic>.from(data?['vistas360'] ?? {});
 
-      // Existing URLs
-      String currentImageUrl = (data['imagen'] ?? '').toString();
-      final Map<String, dynamic> currentVistas = Map<String, dynamic>.from(
-        data['vistas360'] ?? {},
-      );
-
-      // Main image: replace if new provided
+      // Imagen principal
       String updatedImageUrl = currentImageUrl;
-
       if (image != null && image.bytes != null && image.bytes!.isNotEmpty) {
-        // delete old if exists
         if (currentImageUrl.isNotEmpty) {
           await StorageService().deleteFile(currentImageUrl);
         }
         final ext = image.extension ?? 'jpg';
-        final baseName = image.name;
-        final normalized = baseName.toLowerCase().endsWith('.$ext')
-            ? baseName
-            : '$baseName.$ext';
-
+        final normalized = image.name.toLowerCase().endsWith('.$ext')
+            ? image.name
+            : '${image.name}.$ext';
         updatedImageUrl = await StorageService().uploadBytes(
           image.bytes!,
           normalized,
@@ -313,51 +353,45 @@ class FireStoreService {
         );
       }
 
-      // Seasons mapping to ensure consistent keys in Firestore
+      // Vistas 360 actualizadas
       const seasons = ['Invierno', 'Primavera', 'Verano', 'Otoño'];
-      final Map<String, String> updatedVistas = {};
+      final updatedVistas = <String, String>{};
 
       for (final season in seasons) {
-        final lower = season.toLowerCase();
         final existingUrl =
-            (currentVistas[season] ?? currentVistas[lower] ?? '').toString();
+            (currentVistas[season] ?? currentVistas[season.toLowerCase()] ?? '')
+                .toString();
         String newUrl = existingUrl;
 
-        final PlatformFile? newFile = new360views != null
-            ? new360views[season]
-            : null;
-
+        final PlatformFile? newFile = new360views?[season];
         if (newFile != null &&
             newFile.bytes != null &&
             newFile.bytes!.isNotEmpty) {
-          // If replacing, delete existing
           if (existingUrl.isNotEmpty) {
             await StorageService().deleteFile(existingUrl);
           }
           final ext = newFile.extension ?? 'jpg';
-          final baseName = newFile.name.isNotEmpty ? newFile.name : lower;
-          final normalized = baseName.toLowerCase().endsWith('.$ext')
-              ? baseName
-              : '$baseName.$ext';
+          final normalized = newFile.name.toLowerCase().endsWith('.$ext')
+              ? newFile.name
+              : '${newFile.name}.$ext';
           newUrl = await StorageService().uploadBytes(
             newFile.bytes!,
             normalized,
             ext,
           );
         }
-
-        updatedVistas[season] = newUrl; // keep empty string if none
+        updatedVistas[season] = newUrl;
       }
 
       await docRef.update({
         'nombre': poi.nombre,
-        'routeId': poi.routeId,
+        'routeId': targetRouteId,
         'descripcion': poi.descripcion,
         'imagen': updatedImageUrl,
         'latitud': poi.latitud,
         'longitud': poi.longitud,
-        'categoria': poi.categorias.map((cat) => cat.id).toList(),
-        'actividades': poi.actividades.map((act) => act.id).toList(),
+        'categoria': poi.categorias.map((c) => c.id).toList(),
+        'actividades': poi.actividades.map((a) => a.id).toList(),
         'vistas360': updatedVistas,
       });
     } catch (e) {
@@ -365,13 +399,22 @@ class FireStoreService {
     }
   }
 
-  Future<void> deletePOI(String poiId, String routeId) {
-    return FirebaseFirestore.instance
-        .collection('ruta')
-        .doc(routeId)
-        .collection('poi')
-        .doc(poiId)
-        .delete();
+  Future<void> deletePOI(String poiId, String? routeId) async {
+    try {
+      // ✅ Si no tiene ruta, eliminar desde "sin_asignar"
+      final targetRouteId = (routeId == null || routeId.isEmpty)
+          ? 'sin_asignar'
+          : routeId;
+
+      await FirebaseFirestore.instance
+          .collection('ruta')
+          .doc(targetRouteId)
+          .collection('poi')
+          .doc(poiId)
+          .delete();
+    } catch (e) {
+      throw Exception('Error deleting POI: $e');
+    }
   }
 
   Future<POI?> fetchPoiById(String poiId) async {
