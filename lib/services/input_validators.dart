@@ -2,10 +2,12 @@ import 'package:file_picker/file_picker.dart';
 
 /// Helper centralizado para validaciones de campos de texto, numeros y archivos.
 class InputValidators {
+  // Límites para Chile (continental)
   static const double minChileLatitude = -56;
   static const double maxChileLatitude = -17;
   static const double minChileLongitude = -76;
   static const double maxChileLongitude = -66;
+
   static const int minDescriptionLength = 20;
   static const int maxImageSizeBytes = 10 * 1024 * 1024; // 10 MB
 
@@ -24,6 +26,12 @@ class InputValidators {
     'hueon',
     'culiado',
     'perra',
+    'conchetumadre',
+    'chucha',
+    'pendejo',
+    'ctm',
+    'maricon',
+    'conchetumare',
   };
 
   static String _normalize(String value) {
@@ -47,12 +55,12 @@ class InputValidators {
       return 'Ingresa un numero valido';
     }
     if (parsed < minChileLatitude || parsed > maxChileLatitude) {
-      return 'La latitud debe estar entre -56 y -17 (Chile)';
+      return 'Entre -56 y -17 (Chile)';
     }
     return null;
   }
 
-  /// Valida una longitud dentro del rango permitido.
+  /// Valida una longitud dentro del rango permitido (Chile).
   static String? validateLongitude(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Por favor ingrese la longitud';
@@ -62,7 +70,7 @@ class InputValidators {
       return 'Ingresa un numero valido';
     }
     if (parsed < minChileLongitude || parsed > maxChileLongitude) {
-      return 'La longitud debe estar entre -76 y -66 (Chile)';
+      return 'Entre -76 y -66 (Chile)';
     }
     return null;
   }

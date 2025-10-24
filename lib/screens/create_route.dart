@@ -6,11 +6,75 @@ import 'package:crud_rutas360/states/route_state.dart';
 import 'package:crud_rutas360/services/input_validators.dart';
 import 'package:crud_rutas360/widgets/build_section.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:crud_rutas360/services/api_keys.dart';
+import 'package:crud_rutas360/services/routing_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:multi_dropdown/multi_dropdown.dart';
+
+/// Formatter de rango tolerante con prefijos:
+/// - Permite estados intermedios ("", "-", ".", "-.", "+", "+.")
+/// - Mientras no se completan los dígitos enteros mínimos del mayor valor absoluto
+///   del rango (p.ej., 2 dígitos para 56/76), deja escribir.
+/// - Cuando ya hay suficientes dígitos, aplica el rango estrictamente.
+class RangeTextInputFormatter extends TextInputFormatter {
+  final double min;
+  final double max;
+
+  RangeTextInputFormatter({required this.min, required this.max})
+    : assert(min <= max);
+
+  int _requiredIntegerDigits() {
+    final absMax = (min.abs() > max.abs()) ? min.abs() : max.abs();
+    final intPart = absMax.floor();
+    return intPart.toString().length; // 2 para 56/76; 3 si fuese >=100
+  }
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.trim();
+
+    // Estados intermedios permitidos durante la escritura
+    if (text.isEmpty ||
+        text == '-' ||
+        text == '+' ||
+        text == '.' ||
+        text == '-.' ||
+        text == '+.') {
+      return newValue;
+    }
+
+    // Si aún no es parseable (ej: "1.-"), deja corregir
+    final v = double.tryParse(text);
+    if (v == null) return newValue;
+
+    // Extraer parte entera para saber cuántos dígitos lleva
+    final match = RegExp(r'^([+-]?)(\d*)(?:\.(\d*))?$').firstMatch(text);
+    String intPart = '';
+    if (match != null) {
+      intPart = match.group(2) ?? '';
+    }
+
+    // Hasta completar los dígitos enteros mínimos, no bloqueamos
+    final needDigits = _requiredIntegerDigits();
+    if (intPart.isEmpty || intPart.length < needDigits) {
+      return newValue;
+    }
+
+    // Ya hay suficientes dígitos -> validar rango
+    if (v < min || v > max) {
+      return oldValue; // bloquear
+    }
+    return newValue;
+  }
+}
 
 class CreateRoute extends StatefulWidget {
   final MapRoute? route;
@@ -24,8 +88,12 @@ class CreateRoute extends StatefulWidget {
 class _CreateRouteState extends State<CreateRoute> {
   LatLng? _initialLatLng;
   LatLng? _finalLatLng;
+  List<LatLng> _routePoints = [];
+  bool _routeLoading = false;
+  String? _routeError;
+  Timer? _routeDebounce;
+  String? _lastRouteKey;
 
-  final String apiKey = 'vuobOOmhVcspXRuOBRRs';
   final MapController mapController = MapController();
   final _createRouteFormKey = GlobalKey<FormState>();
 
@@ -36,12 +104,20 @@ class _CreateRouteState extends State<CreateRoute> {
   final TextEditingController _finalLongController = TextEditingController();
   final MultiSelectController<POI> _multiSelectController =
       MultiSelectController<POI>();
-  bool _initialPOIsApplied = false; 
+  bool _initialPOIsApplied = false;
+
+  // Control de estado del mapa para no usar el controller antes de tiempo
+  bool _mapReady = false;
+  LatLngBounds? _pendingRouteBounds;
 
   final Color mainColor = const Color(0xFF4D67AE);
 
-  // 🚀 Nueva propiedad: detecta si el formulario está en modo edición
   bool get _isEditing => widget.route != null;
+
+  // Permite signo, enteros y decimales (hasta 8 decimales)
+  final List<TextInputFormatter> _numberFormattersBase = [
+    FilteringTextInputFormatter.allow(RegExp(r'^[+-]?\d*\.?\d{0,8}$')),
+  ];
 
   @override
   void initState() {
@@ -50,8 +126,8 @@ class _CreateRouteState extends State<CreateRoute> {
     _initialLongController.addListener(_updateInitialLatLng);
     _finalLatController.addListener(_updateFinalLatLng);
     _finalLongController.addListener(_updateFinalLatLng);
+    _multiSelectController.addListener(() => setState(() {}));
 
-    // Si estamos editando, precargar los datos de la ruta existente
     if (widget.route != null) {
       _nameController.text = widget.route!.name;
       _initialLatController.text = widget.route!.initialLatitude.toString();
@@ -62,7 +138,6 @@ class _CreateRouteState extends State<CreateRoute> {
       _updateFinalLatLng();
     }
 
-    // Cargar POIs disponibles (no asignados)
     BlocProvider.of<RouteBloc>(context).add(LoadUnasignedPOIs());
   }
 
@@ -72,6 +147,7 @@ class _CreateRouteState extends State<CreateRoute> {
     setState(() {
       _initialLatLng = (lat != null && lng != null) ? LatLng(lat, lng) : null;
     });
+    _maybeFetchRoute();
   }
 
   void _updateFinalLatLng() {
@@ -80,10 +156,120 @@ class _CreateRouteState extends State<CreateRoute> {
     setState(() {
       _finalLatLng = (lat != null && lng != null) ? LatLng(lat, lng) : null;
     });
+    _maybeFetchRoute();
+  }
+
+  void _maybeFetchRoute() {
+    if (_initialLatLng != null && _finalLatLng != null) {
+      // Validate within allowed ranges before fetching
+      final okInitialLat =
+          InputValidators.validateLatitude(_initialLatController.text) == null;
+      final okInitialLng =
+          InputValidators.validateLongitude(_initialLongController.text) == null;
+      final okFinalLat =
+          InputValidators.validateLatitude(_finalLatController.text) == null;
+      final okFinalLng =
+          InputValidators.validateLongitude(_finalLongController.text) == null;
+
+      if (okInitialLat && okInitialLng && okFinalLat && okFinalLng) {
+        // Debounce rapid changes while typing
+        _routeDebounce?.cancel();
+        _routeDebounce = Timer(const Duration(milliseconds: 450), () {
+          if (!mounted) return;
+          final key =
+              '${_initialLatLng!.latitude},${_initialLatLng!.longitude}|${_finalLatLng!.latitude},${_finalLatLng!.longitude}';
+          if (_lastRouteKey == key && _routePoints.isNotEmpty) return;
+          _lastRouteKey = key;
+          _fetchRoute();
+        });
+      } else {
+        // Inputs out of allowed range; clear route preview
+        setState(() {
+          _routePoints = [];
+          _routeError = null;
+        });
+      }
+    } else {
+      setState(() {
+        _routePoints = [];
+        _routeError = null;
+      });
+    }
+  }
+
+  Future<void> _fetchRoute() async {
+    if (_routeLoading) {
+      return;
+    }
+    final start = _initialLatLng!;
+    final end = _finalLatLng!;
+    setState(() {
+      _routeLoading = true;
+      _routeError = null;
+    });
+    try {
+      final points = await RoutingService.fetchRoute(
+        start: start,
+        end: end,
+        orsApiKey: ApiKeys.openRouteServiceKey,
+      );
+      if (!mounted) return;
+      setState(() {
+        _routePoints = points;
+      });
+
+      if (_routePoints.isNotEmpty) {
+        try {
+          final clean = _routePoints
+              .where((p) =>
+                  p.latitude.isFinite &&
+                  p.longitude.isFinite &&
+                  p.latitude >= -90 &&
+                  p.latitude <= 90 &&
+                  p.longitude >= -180 &&
+                  p.longitude <= 180)
+              .toList(growable: false);
+          if (clean.isEmpty) {
+            // avoid fitting when all points are invalid
+            return;
+          }
+          final bounds = clean.length >= 2
+              ? LatLngBounds.fromPoints(clean)
+              : LatLngBounds(clean.first, clean.first);
+          if (!_mapReady) {
+            _pendingRouteBounds = bounds; // diferir hasta que el mapa esté listo
+          } else {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              try {
+                mapController.fitCamera(
+                  CameraFit.bounds(
+                    bounds: bounds,
+                    padding: const EdgeInsets.all(24),
+                  ),
+                );
+              } catch (_) {}
+            });
+          }
+        } catch (_) {}
+      }
+    } catch (e) {
+      setState(() {
+        _routeError = e.toString();
+        _routePoints = [];
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _routeLoading = false;
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
+    _routeDebounce?.cancel();
     _nameController.dispose();
     _initialLatController.dispose();
     _initialLongController.dispose();
@@ -150,6 +336,8 @@ class _CreateRouteState extends State<CreateRoute> {
                         child: SingleChildScrollView(
                           child: Form(
                             key: _createRouteFormKey,
+                            autovalidateMode:
+                                AutovalidateMode.always, // error al instante
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -213,6 +401,16 @@ class _CreateRouteState extends State<CreateRoute> {
                                                 decimal: true,
                                                 signed: true,
                                               ),
+                                          inputFormatters: [
+                                            ..._numberFormattersBase,
+                                            // Limite Chile (usa tus constantes)
+                                            RangeTextInputFormatter(
+                                              min: InputValidators
+                                                  .minChileLatitude,
+                                              max: InputValidators
+                                                  .maxChileLatitude,
+                                            ),
+                                          ],
                                           validator:
                                               InputValidators.validateLatitude,
                                         ),
@@ -232,6 +430,16 @@ class _CreateRouteState extends State<CreateRoute> {
                                                 decimal: true,
                                                 signed: true,
                                               ),
+                                          inputFormatters: [
+                                            ..._numberFormattersBase,
+                                            // Limite Chile (usa tus constantes)
+                                            RangeTextInputFormatter(
+                                              min: InputValidators
+                                                  .minChileLongitude,
+                                              max: InputValidators
+                                                  .maxChileLongitude,
+                                            ),
+                                          ],
                                           validator:
                                               InputValidators.validateLongitude,
                                         ),
@@ -262,6 +470,15 @@ class _CreateRouteState extends State<CreateRoute> {
                                                 decimal: true,
                                                 signed: true,
                                               ),
+                                          inputFormatters: [
+                                            ..._numberFormattersBase,
+                                            RangeTextInputFormatter(
+                                              min: InputValidators
+                                                  .minChileLatitude,
+                                              max: InputValidators
+                                                  .maxChileLatitude,
+                                            ),
+                                          ],
                                           validator:
                                               InputValidators.validateLatitude,
                                         ),
@@ -281,6 +498,15 @@ class _CreateRouteState extends State<CreateRoute> {
                                                 decimal: true,
                                                 signed: true,
                                               ),
+                                          inputFormatters: [
+                                            ..._numberFormattersBase,
+                                            RangeTextInputFormatter(
+                                              min: InputValidators
+                                                  .minChileLongitude,
+                                              max: InputValidators
+                                                  .maxChileLongitude,
+                                            ),
+                                          ],
                                           validator:
                                               InputValidators.validateLongitude,
                                         ),
@@ -299,7 +525,6 @@ class _CreateRouteState extends State<CreateRoute> {
                                     final routePOIs = widget.route?.pois ?? [];
                                     final unasignedPOIs = state.unasignedPOIs;
 
-                                    // Unir los POIs de la ruta y los no asignados
                                     final allPOIsMap = <String, POI>{};
                                     for (var poi in routePOIs) {
                                       allPOIsMap[poi.id] = poi;
@@ -309,10 +534,8 @@ class _CreateRouteState extends State<CreateRoute> {
                                     }
                                     final allPOIs = allPOIsMap.values.toList();
 
-                                    // Preseleccionar POIs si estamos editando
                                     if (routePOIs.isNotEmpty &&
                                         !_initialPOIsApplied) {
-                                      // ✅ corrección
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             try {
@@ -326,17 +549,14 @@ class _CreateRouteState extends State<CreateRoute> {
                                                   );
                                             } catch (_) {
                                             } finally {
-                                              // 🔧 agregado
-                                              _initialPOIsApplied =
-                                                  true; // 🔧 agregado
+                                              _initialPOIsApplied = true;
                                             }
                                           });
                                     }
                                     if (routePOIs.isEmpty &&
                                         !_initialPOIsApplied) {
-                                      // 🔧 agregado
-                                      _initialPOIsApplied = true; // 🔧 agregado
-                                    } // 🔧 agregado
+                                      _initialPOIsApplied = true;
+                                    }
 
                                     if (allPOIs.isEmpty) {
                                       return Padding(
@@ -364,10 +584,10 @@ class _CreateRouteState extends State<CreateRoute> {
                                         controller: _multiSelectController,
                                         enabled: true,
                                         searchEnabled: true,
-                                        fieldDecoration: FieldDecoration(
+                                        fieldDecoration: const FieldDecoration(
                                           labelText: 'Selecciona POIs',
                                           hintText: 'Selecciona POIs',
-                                          border: const OutlineInputBorder(),
+                                          border: OutlineInputBorder(),
                                         ),
                                         searchDecoration:
                                             const SearchFieldDecoration(
@@ -398,9 +618,8 @@ class _CreateRouteState extends State<CreateRoute> {
                                         onPressed: () {
                                           if (_createRouteFormKey.currentState!
                                               .validate()) {
-                                            // ✅ corrección
-                                            _fnAddRoute(); // ✅ corrección
-                                          } // ✅ corrección
+                                            _fnAddRoute();
+                                          }
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: mainColor,
@@ -462,27 +681,31 @@ class _CreateRouteState extends State<CreateRoute> {
                                 initialCenter:
                                     _initialLatLng ??
                                     _finalLatLng ??
-                                    const LatLng(-35.7, -71.4),
+                                    LatLng(-35.6960, -71.4060),
                                 initialZoom: 13,
-                                minZoom: 5,
-                                maxZoom: 17,
-                                keepAlive: true,
-                                cameraConstraint: CameraConstraint.contain(
-                                  bounds: LatLngBounds(
-                                    const LatLng(-56.0, -76.0),
-                                    const LatLng(-17.0, -66.0),
-                                  ),
-                                ),
-                                interactionOptions: const InteractionOptions(
-                                  flags:
-                                      InteractiveFlag.all &
-                                      ~InteractiveFlag.flingAnimation,
-                                ),
+                                onMapReady: () {
+                                  _mapReady = true;
+                                  if (_pendingRouteBounds != null) {
+                                    final b = _pendingRouteBounds!;
+                                    _pendingRouteBounds = null;
+                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                      if (!mounted) return;
+                                      try {
+                                        mapController.fitCamera(
+                                          CameraFit.bounds(
+                                            bounds: b,
+                                            padding: const EdgeInsets.all(24),
+                                          ),
+                                        );
+                                      } catch (_) {}
+                                    });
+                                  }
+                                },
                               ),
                               children: [
                                 TileLayer(
                                   urlTemplate:
-                                      'https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=$apiKey',
+                                      'https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${ApiKeys.maptilerKey}',
                                 ),
                                 MarkerLayer(
                                   markers: [
@@ -508,32 +731,47 @@ class _CreateRouteState extends State<CreateRoute> {
                                           size: 30,
                                         ),
                                       ),
-                                    ..._multiSelectController.selectedItems.map(
-                                      (item) => Marker(
-                                        point: LatLng(
-                                          item.value.latitud,
-                                          item.value.longitud,
+                                    ..._multiSelectController.selectedItems
+                                        .where((item) {
+                                          final lat = item.value.latitud;
+                                          final lon = item.value.longitud;
+                                          return lat.isFinite &&
+                                              lon.isFinite &&
+                                              lat >= -90 &&
+                                              lat <= 90 &&
+                                              lon >= -180 &&
+                                              lon <= 180;
+                                        })
+                                        .map(
+                                          (item) => Marker(
+                                            point: LatLng(
+                                              item.value.latitud,
+                                              item.value.longitud,
+                                            ),
+                                            width: 32,
+                                            height: 32,
+                                            child: const Icon(
+                                              Icons.location_on,
+                                              color: Colors.purple,
+                                              size: 32,
+                                            ),
+                                          ),
                                         ),
-                                        width: 32,
-                                        height: 32,
-                                        child: const Icon(
-                                          Icons.location_on,
-                                          color: Colors.purple,
-                                          size: 32,
-                                        ),
-                                      ),
-                                    ),
                                   ],
                                 ),
-                                if (_initialLatLng != null &&
-                                    _finalLatLng != null)
+                                if (_routePoints.isNotEmpty)
                                   PolylineLayer(
                                     polylines: [
                                       Polyline(
-                                        points: [
-                                          _initialLatLng!,
-                                          _finalLatLng!,
-                                        ],
+                                        points: _routePoints
+                                            .where((p) =>
+                                                p.latitude.isFinite &&
+                                                p.longitude.isFinite &&
+                                                p.latitude >= -90 &&
+                                                p.latitude <= 90 &&
+                                                p.longitude >= -180 &&
+                                                p.longitude <= 180)
+                                            .toList(growable: false),
                                         color: mainColor,
                                         strokeWidth: 4,
                                       ),
@@ -543,6 +781,19 @@ class _CreateRouteState extends State<CreateRoute> {
                             ),
                           ),
                         ),
+                        if (_routeLoading)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: LinearProgressIndicator(),
+                          ),
+                        if (_routeError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              _routeError!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -553,11 +804,10 @@ class _CreateRouteState extends State<CreateRoute> {
             return const Center(child: CircularProgressIndicator());
           }
         },
-      ), // 
+      ),
     );
   }
 
-  // 🧠 Función unificada: crea o actualiza según el modo actual
   void _fnAddRoute() {
     final name = _nameController.text.trim();
     final initialLat = _initialLatController.text.trim();
