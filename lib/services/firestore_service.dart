@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crud_rutas360/models/activity_model.dart';
 import 'package:crud_rutas360/models/category_model.dart';
@@ -29,12 +28,7 @@ class FireStoreService {
           final poiSnapshot = await routeDoc.reference.collection('poi').get();
           final routeData = routeDoc.data();
           final poiDocs = poiSnapshot.docs
-              .map(
-                (doc) => {
-                  'id': doc.id,
-                  'data': doc.data(),
-                },
-              )
+              .map((doc) => {'id': doc.id, 'data': doc.data()})
               .toList();
           return {
             'routeId': routeDoc.id,
@@ -51,24 +45,25 @@ class FireStoreService {
       for (final batch in batches) {
         final routeId = batch['routeId'] as String;
         final routeName = batch['routeName'] as String;
-        final poiDocs =
-            List<Map<String, dynamic>>.from(batch['poiDocs'] as List);
+        final poiDocs = List<Map<String, dynamic>>.from(
+          batch['poiDocs'] as List,
+        );
         for (final doc in poiDocs) {
-          final data = Map<String, dynamic>.from(doc['data'] as Map<String, dynamic>);
-          final categoriasIds =
-              List<String>.from((data['categoria'] ?? const <String>[]));
-          final actividadesIds =
-              List<String>.from((data['actividades'] ?? const <String>[]));
+          final data = Map<String, dynamic>.from(
+            doc['data'] as Map<String, dynamic>,
+          );
+          final categoriasIds = List<String>.from(
+            (data['categoria'] ?? const <String>[]),
+          );
+          final actividadesIds = List<String>.from(
+            (data['actividades'] ?? const <String>[]),
+          );
 
           categoryIds.addAll(
-            categoriasIds.where(
-              (id) => id.isNotEmpty && id != 'vacio',
-            ),
+            categoriasIds.where((id) => id.isNotEmpty && id != 'vacio'),
           );
           activityIds.addAll(
-            actividadesIds.where(
-              (id) => id.isNotEmpty && id != 'vacio',
-            ),
+            actividadesIds.where((id) => id.isNotEmpty && id != 'vacio'),
           );
 
           rawPois.add({
@@ -93,10 +88,12 @@ class FireStoreService {
 
       return rawPois.map((raw) {
         final data = raw['data'] as Map<String, dynamic>;
-        final categoriasIds =
-            List<String>.from(raw['categoriaIds'] as List<String>);
-        final actividadesIds =
-            List<String>.from(raw['actividadIds'] as List<String>);
+        final categoriasIds = List<String>.from(
+          raw['categoriaIds'] as List<String>,
+        );
+        final actividadesIds = List<String>.from(
+          raw['actividadIds'] as List<String>,
+        );
         final categorias = categoriasIds
             .where((id) => categoriesById.containsKey(id))
             .map((id) => categoriesById[id]!)
@@ -127,10 +124,10 @@ class FireStoreService {
 
   Future<List<POI>> fetchRoutesPOIs(String routeId) async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance 
-          .collection('ruta') 
-          .doc(routeId) 
-          .collection('poi') 
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('ruta')
+          .doc(routeId)
+          .collection('poi')
           .get();
 
       if (querySnapshot.docs.isEmpty) {
@@ -144,20 +141,18 @@ class FireStoreService {
 
       for (var doc in querySnapshot.docs) {
         final data = doc.data();
-        final categoriasIds =
-            List<String>.from((data['categoria'] ?? const <String>[]));
-        final actividadesIds =
-            List<String>.from((data['actividades'] ?? const <String>[]));
+        final categoriasIds = List<String>.from(
+          (data['categoria'] ?? const <String>[]),
+        );
+        final actividadesIds = List<String>.from(
+          (data['actividades'] ?? const <String>[]),
+        );
 
         categoryIds.addAll(
-          categoriasIds.where(
-            (id) => id.isNotEmpty && id != 'vacio',
-          ),
+          categoriasIds.where((id) => id.isNotEmpty && id != 'vacio'),
         );
         activityIds.addAll(
-          actividadesIds.where(
-            (id) => id.isNotEmpty && id != 'vacio',
-          ),
+          actividadesIds.where((id) => id.isNotEmpty && id != 'vacio'),
         );
 
         rawPois.add({
@@ -175,10 +170,12 @@ class FireStoreService {
 
       return rawPois.map((raw) {
         final data = raw['data'] as Map<String, dynamic>;
-        final categoriasIds =
-            List<String>.from(raw['categoriaIds'] as List<String>);
-        final actividadesIds =
-            List<String>.from(raw['actividadIds'] as List<String>);
+        final categoriasIds = List<String>.from(
+          raw['categoriaIds'] as List<String>,
+        );
+        final actividadesIds = List<String>.from(
+          raw['actividadIds'] as List<String>,
+        );
         final categorias = categoriasIds
             .where((id) => categoriesById.containsKey(id))
             .map((id) => categoriesById[id]!)
@@ -206,10 +203,13 @@ class FireStoreService {
     }
   }
 
-  Future<void> addPOI(POI poi, String routeId, PlatformFile? image, Map<String, PlatformFile?>? new360views) async {
+  Future<void> addPOI(
+    POI poi,
+    String routeId,
+    PlatformFile? image,
+    Map<String, PlatformFile?>? new360views,
+  ) async {
     try {
-      
-  
       // Upload main image only if provided with bytes; else keep empty string
       String imageUrl = '';
       if (image != null && image.bytes != null && image.bytes!.isNotEmpty) {
@@ -233,22 +233,21 @@ class FireStoreService {
           final normalized = baseName.toLowerCase().endsWith('.$ext')
               ? baseName
               : '$baseName.$ext';
-          return await StorageService().uploadBytes(
-            f.bytes!,
-            normalized,
-            ext,
-          );
+          return await StorageService().uploadBytes(f.bytes!, normalized, ext);
         }
         return '';
       }
 
       final Map<String, String> vistas360Urls = {
         'Invierno': await uploadOrEmpty(new360views?['Invierno'], 'invierno'),
-        'Primavera': await uploadOrEmpty(new360views?['Primavera'], 'primavera'),
+        'Primavera': await uploadOrEmpty(
+          new360views?['Primavera'],
+          'primavera',
+        ),
         'Verano': await uploadOrEmpty(new360views?['Verano'], 'verano'),
         'Otoño': await uploadOrEmpty(new360views?['Otoño'], 'otono'),
       };
-      
+
       await FirebaseFirestore.instance
           .collection('ruta')
           .doc(routeId)
@@ -263,9 +262,7 @@ class FireStoreService {
             'actividades': poi.actividades.map((act) => act.id).toList(),
             'vistas360': vistas360Urls,
           });
-     
     } catch (e) {
-      
       throw Exception('Error adding POI: $e');
     }
   }
@@ -277,35 +274,30 @@ class FireStoreService {
     Map<String, PlatformFile?>? new360views,
   }) async {
     try {
-      
-      
       final docRef = FirebaseFirestore.instance
           .collection('ruta')
           .doc(routeId)
           .collection('poi')
           .doc(poi.id);
 
-      
       final snapshot = await docRef.get();
       if (!snapshot.exists) {
         throw Exception('POI not found for update');
       }
       final data = snapshot.data() as Map<String, dynamic>;
-      
 
       // Existing URLs
       String currentImageUrl = (data['imagen'] ?? '').toString();
-      final Map<String, dynamic> currentVistas =
-          Map<String, dynamic>.from(data['vistas360'] ?? {});
+      final Map<String, dynamic> currentVistas = Map<String, dynamic>.from(
+        data['vistas360'] ?? {},
+      );
 
       // Main image: replace if new provided
       String updatedImageUrl = currentImageUrl;
-      
+
       if (image != null && image.bytes != null && image.bytes!.isNotEmpty) {
-        
         // delete old if exists
         if (currentImageUrl.isNotEmpty) {
-          
           await StorageService().deleteFile(currentImageUrl);
         }
         final ext = image.extension ?? 'jpg';
@@ -313,29 +305,31 @@ class FireStoreService {
         final normalized = baseName.toLowerCase().endsWith('.$ext')
             ? baseName
             : '$baseName.$ext';
-        
-        updatedImageUrl = await StorageService()
-            .uploadBytes(image.bytes!, normalized, ext);
-        
+
+        updatedImageUrl = await StorageService().uploadBytes(
+          image.bytes!,
+          normalized,
+          ext,
+        );
       }
 
       // Seasons mapping to ensure consistent keys in Firestore
       const seasons = ['Invierno', 'Primavera', 'Verano', 'Otoño'];
       final Map<String, String> updatedVistas = {};
 
-     
       for (final season in seasons) {
         final lower = season.toLowerCase();
-        final existingUrl = (currentVistas[season] ?? currentVistas[lower] ?? '')
-            .toString();
+        final existingUrl =
+            (currentVistas[season] ?? currentVistas[lower] ?? '').toString();
         String newUrl = existingUrl;
 
         final PlatformFile? newFile = new360views != null
             ? new360views[season]
             : null;
 
-        
-        if (newFile != null && newFile.bytes != null && newFile.bytes!.isNotEmpty) {
+        if (newFile != null &&
+            newFile.bytes != null &&
+            newFile.bytes!.isNotEmpty) {
           // If replacing, delete existing
           if (existingUrl.isNotEmpty) {
             await StorageService().deleteFile(existingUrl);
@@ -345,8 +339,11 @@ class FireStoreService {
           final normalized = baseName.toLowerCase().endsWith('.$ext')
               ? baseName
               : '$baseName.$ext';
-          newUrl = await StorageService()
-              .uploadBytes(newFile.bytes!, normalized, ext);
+          newUrl = await StorageService().uploadBytes(
+            newFile.bytes!,
+            normalized,
+            ext,
+          );
         }
 
         updatedVistas[season] = newUrl; // keep empty string if none
@@ -363,21 +360,73 @@ class FireStoreService {
         'actividades': poi.actividades.map((act) => act.id).toList(),
         'vistas360': updatedVistas,
       });
-      
-      
     } catch (e) {
       throw Exception('Error updating POI: $e');
     }
   }
 
   Future<void> deletePOI(String poiId, String routeId) {
-   
     return FirebaseFirestore.instance
         .collection('ruta')
         .doc(routeId)
         .collection('poi')
         .doc(poiId)
         .delete();
+  }
+
+  Future<POI?> fetchPoiById(String poiId) async {
+    try {
+      final routesSnapshot = await _routesCollection.get();
+      for (final routeDoc in routesSnapshot.docs) {
+        final poiDoc = await routeDoc.reference
+            .collection('poi')
+            .doc(poiId)
+            .get();
+        if (!poiDoc.exists) {
+          continue;
+        }
+        final data = poiDoc.data();
+        if (data == null) {
+          continue;
+        }
+        final categoriaIds = List<String>.from(
+          data['categoria'] ?? const <String>[],
+        );
+        final actividadIds = List<String>.from(
+          data['actividades'] ?? const <String>[],
+        );
+
+        final categoriesById = await _fetchCategoryMap(categoriaIds.toSet());
+        final activitiesById = await _fetchActivityMap(actividadIds.toSet());
+
+        final categorias = categoriaIds
+            .where((id) => categoriesById.containsKey(id))
+            .map((id) => categoriesById[id]!)
+            .toList();
+        final actividades = actividadIds
+            .where((id) => activitiesById.containsKey(id))
+            .map((id) => activitiesById[id]!)
+            .toList();
+
+        final routeData = routeDoc.data();
+        return POI(
+          id: poiDoc.id,
+          routeId: routeDoc.id,
+          routeName: routeData['nombre']?.toString(),
+          nombre: data['nombre']?.toString() ?? '',
+          descripcion: Map<String, dynamic>.from(data['descripcion'] ?? {}),
+          imagen: data['imagen']?.toString() ?? '',
+          latitud: ((data['latitud'] ?? 0) as num).toDouble(),
+          longitud: ((data['longitud'] ?? 0) as num).toDouble(),
+          categorias: categorias,
+          actividades: actividades,
+          vistas360: Map<String, dynamic>.from(data['vistas360'] ?? {}),
+        );
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Error fetching POI: $e');
+    }
   }
 
   Future<List<MapRoute>> fetchRoutes() async {
@@ -414,127 +463,146 @@ class FireStoreService {
     }
   }
 
-  Future<void> addRoute(MapRoute route) async { 
-    final docRef = await _routesCollection.add({ 
+  Future<MapRoute?> fetchRouteById(String routeId) async {
+    try {
+      final doc = await _routesCollection.doc(routeId).get();
+      if (!doc.exists) {
+        return null;
+      }
+      final data = doc.data();
+      if (data == null) {
+        return null;
+      }
+      final pois = await fetchRoutesPOIs(routeId);
+      final initialLatitude = ((data['latitud_inicio'] ?? 0) as num).toDouble();
+      final initialLongitude = ((data['longitud_inicio'] ?? 0) as num)
+          .toDouble();
+      final finalLatitude = ((data['latitud_fin'] ?? 0) as num).toDouble();
+      final finalLongitude = ((data['longitud_fin'] ?? 0) as num).toDouble();
+      final name = data['nombre']?.toString() ?? '';
+
+      return MapRoute(
+        id: doc.id,
+        initialLatitude: initialLatitude,
+        initialLongitude: initialLongitude,
+        finalLatitude: finalLatitude,
+        finalLongitude: finalLongitude,
+        name: name,
+        pois: pois,
+      );
+    } catch (e) {
+      throw Exception('Error fetching Route: $e');
+    }
+  }
+
+  Future<void> addRoute(MapRoute route) async {
+    final docRef = await _routesCollection.add({
       'nombre': route.name,
       'latitud_inicio': route.initialLatitude,
       'longitud_inicio': route.initialLongitude,
       'latitud_fin': route.finalLatitude,
       'longitud_fin': route.finalLongitude,
     });
-    if (route.pois.isNotEmpty) { 
-      await _syncRoutePOIs( 
-        routeId: docRef.id, 
-        selectedPois: route.pois, 
-      ); 
-    } 
+    if (route.pois.isNotEmpty) {
+      await _syncRoutePOIs(routeId: docRef.id, selectedPois: route.pois);
+    }
   }
 
-  Future<void> updateRoute(MapRoute route) async { 
-    final docRef = _routesCollection.doc(route.id); 
-    await docRef.update({ 
+  Future<void> updateRoute(MapRoute route) async {
+    final docRef = _routesCollection.doc(route.id);
+    await docRef.update({
       'nombre': route.name,
       'latitud_inicio': route.initialLatitude,
       'longitud_inicio': route.initialLongitude,
       'latitud_fin': route.finalLatitude,
       'longitud_fin': route.finalLongitude,
     });
-    await _syncRoutePOIs( 
-      routeId: route.id, 
-      selectedPois: route.pois, 
-    ); 
+    await _syncRoutePOIs(routeId: route.id, selectedPois: route.pois);
   }
 
-  Future<void> _syncRoutePOIs({ 
-    required String routeId, 
-    required List<POI> selectedPois, 
-  }) async { 
-    final poiCollection = _routesCollection 
-        .doc(routeId) 
-        .collection('poi'); 
-    final existingSnapshot = await poiCollection.get(); 
-    final existingDataById = <String, Map<String, dynamic>>{ 
-      for (final doc in existingSnapshot.docs) 
-        doc.id: Map<String, dynamic>.from( 
-          doc.data() as Map, 
-        ), 
-    }; 
+  Future<void> _syncRoutePOIs({
+    required String routeId,
+    required List<POI> selectedPois,
+  }) async {
+    final poiCollection = _routesCollection.doc(routeId).collection('poi');
+    final existingSnapshot = await poiCollection.get();
+    final existingDataById = <String, Map<String, dynamic>>{
+      for (final doc in existingSnapshot.docs)
+        doc.id: Map<String, dynamic>.from(doc.data() as Map),
+    };
 
-    final currentIds = existingDataById.keys.toSet(); 
-    final selectedIds = selectedPois.map((poi) => poi.id).toSet(); 
+    final currentIds = existingDataById.keys.toSet();
+    final selectedIds = selectedPois.map((poi) => poi.id).toSet();
 
-    final idsToRemove = currentIds.difference(selectedIds); 
-    final idsToAdd = selectedIds.difference(currentIds); 
+    final idsToRemove = currentIds.difference(selectedIds);
+    final idsToAdd = selectedIds.difference(currentIds);
 
-    final sinAsignarCollection = 
-        _routesCollection 
-            .doc('sin_asignar') 
-            .collection('poi'); 
+    final sinAsignarCollection = _routesCollection
+        .doc('sin_asignar')
+        .collection('poi');
 
-    for (final id in idsToRemove) { 
-      final data = existingDataById[id]; 
-      if (data != null) { 
-        await sinAsignarCollection.doc(id).set(data); 
-      } 
-      await poiCollection.doc(id).delete(); 
-    } 
+    for (final id in idsToRemove) {
+      final data = existingDataById[id];
+      if (data != null) {
+        await sinAsignarCollection.doc(id).set(data);
+      }
+      await poiCollection.doc(id).delete();
+    }
 
-    for (final id in idsToAdd) { 
-      final sinAsignarDoc = sinAsignarCollection.doc(id); 
-      final sinAsignarSnapshot = await sinAsignarDoc.get(); 
+    for (final id in idsToAdd) {
+      final sinAsignarDoc = sinAsignarCollection.doc(id);
+      final sinAsignarSnapshot = await sinAsignarDoc.get();
 
-      Map<String, dynamic>? poiData; 
-      bool removeFromSinAsignar = false; 
-      DocumentReference? sourceDocRef; 
+      Map<String, dynamic>? poiData;
+      bool removeFromSinAsignar = false;
+      DocumentReference? sourceDocRef;
 
-      if (sinAsignarSnapshot.exists) { 
-        poiData = Map<String, dynamic>.from( 
-          sinAsignarSnapshot.data() as Map, 
-        ); 
-        removeFromSinAsignar = true; 
-      } else { 
-        POI? selectedPoi; 
-        for (final poi in selectedPois) { 
-          if (poi.id == id) { 
-            selectedPoi = poi; 
-            break; 
-          } 
-        } 
+      if (sinAsignarSnapshot.exists) {
+        poiData = Map<String, dynamic>.from(sinAsignarSnapshot.data() as Map);
+        removeFromSinAsignar = true;
+      } else {
+        POI? selectedPoi;
+        for (final poi in selectedPois) {
+          if (poi.id == id) {
+            selectedPoi = poi;
+            break;
+          }
+        }
 
-        if (selectedPoi != null && 
-            selectedPoi.routeId != null && 
-            selectedPoi.routeId!.isNotEmpty && 
-            selectedPoi.routeId != routeId) { 
-          sourceDocRef = _routesCollection 
-              .doc(selectedPoi.routeId) 
-              .collection('poi') 
-              .doc(id); 
-          final sourceSnapshot = await sourceDocRef.get(); 
-          if (sourceSnapshot.exists) { 
-            poiData = Map<String, dynamic>.from( 
-              sourceSnapshot.data() as Map, 
-            ); 
-          } 
-        } 
-      } 
+        if (selectedPoi != null &&
+            selectedPoi.routeId != null &&
+            selectedPoi.routeId!.isNotEmpty &&
+            selectedPoi.routeId != routeId) {
+          sourceDocRef = _routesCollection
+              .doc(selectedPoi.routeId)
+              .collection('poi')
+              .doc(id);
+          final sourceSnapshot = await sourceDocRef.get();
+          if (sourceSnapshot.exists) {
+            poiData = Map<String, dynamic>.from(sourceSnapshot.data() as Map);
+          }
+        }
+      }
 
-      if (poiData != null) { 
-        await poiCollection.doc(id).set(poiData); 
-        if (removeFromSinAsignar) { 
-          await sinAsignarDoc.delete(); 
-        } 
-        if (sourceDocRef != null) { 
-          await sourceDocRef.delete(); 
-        } 
-      } 
-    } 
-  } 
+      if (poiData != null) {
+        await poiCollection.doc(id).set(poiData);
+        if (removeFromSinAsignar) {
+          await sinAsignarDoc.delete();
+        }
+        if (sourceDocRef != null) {
+          await sourceDocRef.delete();
+        }
+      }
+    }
+  }
 
   Future<void> deleteRoute(String routeId) {
     return _routesCollection.doc(routeId).delete();
   }
 
-  Future<List<PoiCategory>> fetchAllCategories({bool forceRefresh = false}) async {
+  Future<List<PoiCategory>> fetchAllCategories({
+    bool forceRefresh = false,
+  }) async {
     if (!forceRefresh && _cachedCategoryList != null) {
       // OPTIMIZACION: devolvemos una copia de la cache para evitar reconsultas completas.
       return List<PoiCategory>.from(_cachedCategoryList!);
@@ -561,6 +629,35 @@ class FireStoreService {
       return List<PoiCategory>.from(categories);
     } catch (e) {
       throw Exception('Error fetching Categories: $e');
+    }
+  }
+
+  Future<PoiCategory?> fetchCategoryById(String categoryId) async {
+    if (_categoryCache.containsKey(categoryId)) {
+      return _categoryCache[categoryId];
+    }
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('categorias')
+          .doc(categoryId)
+          .get();
+      if (!doc.exists) {
+        return null;
+      }
+      final data = doc.data();
+      if (data == null) {
+        return null;
+      }
+      final category = PoiCategory(
+        id: doc.id,
+        nombre: Map<String, dynamic>.from(data['nombre'] ?? {}),
+        backgroundColor: data['background_color']?.toString() ?? '',
+        textColor: data['text_color']?.toString() ?? '',
+      );
+      _categoryCache[category.id] = category;
+      return category;
+    } catch (e) {
+      throw Exception('Error fetching Category: $e');
     }
   }
 
@@ -622,7 +719,9 @@ class FireStoreService {
       if (missing.isNotEmpty) {
         const int chunkSize = 10;
         for (var i = 0; i < missing.length; i += chunkSize) {
-          final end = (i + chunkSize) > missing.length ? missing.length : i + chunkSize;
+          final end = (i + chunkSize) > missing.length
+              ? missing.length
+              : i + chunkSize;
           final chunk = missing.sublist(i, end);
           final querySnapshot = await FirebaseFirestore.instance
               .collection('categorias')
@@ -678,6 +777,35 @@ class FireStoreService {
       return List<Activity>.from(activities);
     } catch (e) {
       throw Exception('Error fetching Actividades: $e');
+    }
+  }
+
+  Future<Activity?> fetchActivityById(String activityId) async {
+    if (_activityCache.containsKey(activityId)) {
+      return _activityCache[activityId];
+    }
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('actividades')
+          .doc(activityId)
+          .get();
+      if (!doc.exists) {
+        return null;
+      }
+      final data = doc.data();
+      if (data == null) {
+        return null;
+      }
+      final activity = Activity(
+        id: doc.id,
+        nombre: Map<String, dynamic>.from(data['nombre'] ?? {}),
+        backgroundColor: data['background_color']?.toString() ?? '',
+        textColor: data['text_color']?.toString() ?? '',
+      );
+      _activityCache[activity.id] = activity;
+      return activity;
+    } catch (e) {
+      throw Exception('Error fetching Activity: $e');
     }
   }
 
@@ -739,7 +867,9 @@ class FireStoreService {
       if (missing.isNotEmpty) {
         const int chunkSize = 10;
         for (var i = 0; i < missing.length; i += chunkSize) {
-          final end = (i + chunkSize) > missing.length ? missing.length : i + chunkSize;
+          final end = (i + chunkSize) > missing.length
+              ? missing.length
+              : i + chunkSize;
           final chunk = missing.sublist(i, end);
           final querySnapshot = await FirebaseFirestore.instance
               .collection('actividades')
@@ -769,36 +899,24 @@ class FireStoreService {
     }
   }
 
-  Future<Map<String, PoiCategory>> _fetchCategoryMap(
-    Set<String> ids,
-  ) async {
-    final filtered = ids
-        .where((id) => id.isNotEmpty && id != 'vacio')
-        .toList();
+  Future<Map<String, PoiCategory>> _fetchCategoryMap(Set<String> ids) async {
+    final filtered = ids.where((id) => id.isNotEmpty && id != 'vacio').toList();
     if (filtered.isEmpty) {
       return {};
     }
 
     final categories = await fetchCategories(filtered);
-    return {
-      for (final category in categories) category.id: category,
-    };
+    return {for (final category in categories) category.id: category};
   }
 
-  Future<Map<String, Activity>> _fetchActivityMap(
-    Set<String> ids,
-  ) async {
-    final filtered = ids
-        .where((id) => id.isNotEmpty && id != 'vacio')
-        .toList();
+  Future<Map<String, Activity>> _fetchActivityMap(Set<String> ids) async {
+    final filtered = ids.where((id) => id.isNotEmpty && id != 'vacio').toList();
     if (filtered.isEmpty) {
       return {};
     }
 
     final activities = await fetchActivities(filtered);
-    return {
-      for (final activity in activities) activity.id: activity,
-    };
+    return {for (final activity in activities) activity.id: activity};
   }
 
   Future<List<MapRoute>> fetchAllRoutes() async {
@@ -825,5 +943,4 @@ class FireStoreService {
       throw Exception('Error fetching Routes: $e');
     }
   }
-
 }

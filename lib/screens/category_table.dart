@@ -95,7 +95,7 @@ class _CategoryTableState extends State<CategoryTable> {
                                 ),
                                 elevation: 3,
                                 shadowColor:
-                                    const Color(0xFF4D67AE).withValues(alpha:0.3),
+                                    const Color(0xFF4D67AE).withValues(alpha: 0.3),
                               ),
                             ),
                           ],
@@ -103,7 +103,7 @@ class _CategoryTableState extends State<CategoryTable> {
                         const SizedBox(height: 16),
                         Container(
                           height: 1,
-                          color: Colors.grey.withValues(alpha:0.2),
+                          color: Colors.grey.withValues(alpha: 0.2),
                         ),
                       ],
                     ),
@@ -138,7 +138,7 @@ class _CategoryTableState extends State<CategoryTable> {
                     ),
                   ),
 
-                  // ===== TABLE CONTAINER =====
+                  // ===== TABLA =====
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
@@ -146,7 +146,7 @@ class _CategoryTableState extends State<CategoryTable> {
                       border: Border.all(color: Colors.grey.shade200),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha:0.04),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -203,28 +203,24 @@ class _CategoryTableState extends State<CategoryTable> {
                                 return DataRow(
                                   color: MaterialStateProperty.resolveWith<Color?>(
                                     (Set<MaterialState> states) {
-                                      if (states
-                                          .contains(MaterialState.hovered)) {
+                                      if (states.contains(MaterialState.hovered)) {
                                         return const Color(0xFF4D67AE)
-                                            .withValues(alpha:0.08);
+                                            .withValues(alpha: 0.08);
                                       }
                                       return zebraColor;
                                     },
                                   ),
                                   cells: [
                                     DataCell(Text(category.id)),
-                                    DataCell(
-                                        Text(category.nombre['es'] ?? '')),
-                                    DataCell(
-                                        Text(category.nombre['en'] ?? '')),
-                                    DataCell(
-                                        Text(category.nombre['pt'] ?? '')),
+                                    DataCell(Text(category.nombre['es'] ?? '')),
+                                    DataCell(Text(category.nombre['en'] ?? '')),
+                                    DataCell(Text(category.nombre['pt'] ?? '')),
                                     DataCell(Row(
                                       children: [
                                         CircleAvatar(
                                           radius: 10,
-                                          backgroundColor: getColorFromHex(
-                                              category.textColor),
+                                          backgroundColor:
+                                              getColorFromHex(category.textColor),
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
@@ -255,25 +251,37 @@ class _CategoryTableState extends State<CategoryTable> {
                                         ),
                                       ],
                                     )),
+                                    // ==== BOTONES IGUALES A LOS DE ACTIVITY ====
                                     DataCell(Row(
                                       children: [
-                                        _ActionIcon(
-                                          icon: Icons.edit_outlined,
-                                          color: const Color(0xFF4D67AE),
+                                        IconButton(
                                           tooltip: "Editar",
-                                          onTap: () {
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
+                                            color: Color(0xFF4D67AE),
+                                            size: 22,
+                                          ),
+                                          padding: const EdgeInsets.all(4),
+                                          constraints: const BoxConstraints(
+                                              minWidth: 36, minHeight: 36),
+                                          onPressed: () {
                                             context.go(
                                               '/categorias/edit/${category.id}',
                                               extra: category,
                                             );
                                           },
                                         ),
-                                        const SizedBox(width: 8),
-                                        _ActionIcon(
-                                          icon: Icons.delete_outline,
-                                          color: Colors.redAccent,
+                                        IconButton(
                                           tooltip: "Eliminar",
-                                          onTap: () {
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                            color: Colors.redAccent,
+                                            size: 22,
+                                          ),
+                                          padding: const EdgeInsets.all(4),
+                                          constraints: const BoxConstraints(
+                                              minWidth: 36, minHeight: 36),
+                                          onPressed: () {
                                             fnDeleteCategory(
                                                 category.id, context);
                                           },
@@ -344,53 +352,5 @@ class _CategoryTableState extends State<CategoryTable> {
     } catch (_) {
       return Colors.transparent;
     }
-  }
-}
-
-/// Íconos de acción con animación hover elegante
-class _ActionIcon extends StatefulWidget {
-  final IconData icon;
-  final Color color;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  const _ActionIcon({
-    required this.icon,
-    required this.color,
-    required this.tooltip,
-    required this.onTap,
-  });
-
-  @override
-  State<_ActionIcon> createState() => _ActionIconState();
-}
-
-class _ActionIconState extends State<_ActionIcon> {
-  bool hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => hovered = true),
-      onExit: (_) => setState(() => hovered = false),
-      child: Tooltip(
-        message: widget.tooltip,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: hovered
-                  ? widget.color.withValues(alpha:0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(widget.icon, size: 20, color: widget.color),
-          ),
-        ),
-      ),
-    );
   }
 }

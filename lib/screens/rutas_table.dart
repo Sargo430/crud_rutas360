@@ -30,8 +30,6 @@ class _TablaRutasState extends State<TablaRutas> {
         if (state is RouteLoaded) {
           const double rowHeight = 60.0;
           const double headerHeight = 52.0;
-          final double tableHeight =
-              headerHeight + (state.routes.length * rowHeight);
 
           return Scaffold(
             backgroundColor: const Color(0xFFF9FAFB),
@@ -138,120 +136,156 @@ class _TablaRutasState extends State<TablaRutas> {
                     ),
                   ),
 
-                  // ======= TABLA =======
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade200),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: tableHeight,
-                        child: DataTableTheme(
-                          data: DataTableThemeData(
-                            headingRowHeight: headerHeight,
-                            dataRowMinHeight: rowHeight,
-                            dataRowMaxHeight: rowHeight,
-                            headingRowColor: MaterialStateProperty.all(
-                                const Color(0xFFF5F6F7)),
-                            headingTextStyle: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF4D67AE),
-                              fontSize: 14,
-                            ),
-                            dataTextStyle: const TextStyle(
-                              fontSize: 13.5,
-                              color: Color(0xFF1F1F1F),
-                            ),
+                  // ======= TABLA SCROLLEABLE Y ANCHA =======
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
                           ),
-                          child: DataTable(
-                            columnSpacing: 26,
-                            horizontalMargin: 22,
-                            border: TableBorder(
-                              horizontalInside: BorderSide(
-                                width: 0.4,
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                            columns: const [
-                              DataColumn(label: Text("Nombre")),
-                              DataColumn(label: Text("Latitud inicio")),
-                              DataColumn(label: Text("Longitud inicio")),
-                              DataColumn(label: Text("Latitud fin")),
-                              DataColumn(label: Text("Longitud fin")),
-                              DataColumn(label: Text("Puntos de interés")),
-                              DataColumn(label: Text("Acciones")),
-                            ],
-                            rows: List<DataRow>.generate(
-                              state.routes.length,
-                              (index) {
-                                final route = state.routes[index];
-                                final Color zebraColor = index.isEven
-                                    ? Colors.white
-                                    : const Color(0xFFF9FAFB);
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Scrollbar(
+                              thumbVisibility: true,
+                              radius: const Radius.circular(10),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.vertical,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minWidth: constraints.maxWidth,
+                                    ),
+                                    child: DataTableTheme(
+                                      data: DataTableThemeData(
+                                        headingRowHeight: headerHeight,
+                                        dataRowMinHeight: rowHeight,
+                                        dataRowMaxHeight: rowHeight,
+                                        headingRowColor:
+                                            MaterialStateProperty.all(
+                                                const Color(0xFFF5F6F7)),
+                                        headingTextStyle: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF4D67AE),
+                                          fontSize: 14,
+                                        ),
+                                        dataTextStyle: const TextStyle(
+                                          fontSize: 13.5,
+                                          color: Color(0xFF1F1F1F),
+                                        ),
+                                      ),
+                                      child: DataTable(
+                                        columnSpacing: 26,
+                                        horizontalMargin: 22,
+                                        border: TableBorder(
+                                          horizontalInside: BorderSide(
+                                            width: 0.4,
+                                            color: Colors.grey.shade300,
+                                          ),
+                                        ),
+                                        columns: const [
+                                          DataColumn(label: Text("Nombre")),
+                                          DataColumn(
+                                              label: Text("Latitud inicio")),
+                                          DataColumn(
+                                              label: Text("Longitud inicio")),
+                                          DataColumn(
+                                              label: Text("Latitud fin")),
+                                          DataColumn(
+                                              label: Text("Longitud fin")),
+                                          DataColumn(
+                                              label: Text("Puntos de interés")),
+                                          DataColumn(label: Text("Acciones")),
+                                        ],
+                                        rows: List<DataRow>.generate(
+                                          state.routes.length,
+                                          (index) {
+                                            final route = state.routes[index];
+                                            final Color zebraColor = index.isEven
+                                                ? Colors.white
+                                                : const Color(0xFFF9FAFB);
 
-                                return DataRow(
-                                  color: MaterialStateProperty.resolveWith<
-                                      Color?>((Set<MaterialState> states) {
-                                    if (states
-                                        .contains(MaterialState.hovered)) {
-                                      return const Color(0xFF4D67AE)
-                                          .withOpacity(0.08);
-                                    }
-                                    return zebraColor;
-                                  }),
-                                  cells: [
-                                    DataCell(Text(route.name)),
-                                    DataCell(Text(route.initialLatitude
-                                        .toStringAsFixed(5))),
-                                    DataCell(Text(route.initialLongitude
-                                        .toStringAsFixed(5))),
-                                    DataCell(Text(
-                                        route.finalLatitude.toStringAsFixed(5))),
-                                    DataCell(Text(route.finalLongitude
-                                        .toStringAsFixed(5))),
-                                    DataCell(Text(
-                                      route.pois.map((e) => e.nombre).join(', '),
-                                      overflow: TextOverflow.ellipsis,
-                                    )),
-                                    DataCell(Row(
-                                      children: [
-                                        IconButton(
-                                          tooltip: "Editar",
-                                          icon: const Icon(Icons.edit_outlined,
-                                              color: Color(0xFF4D67AE)),
-                                          onPressed: () {
-                                            context.go(
-                                              '/rutas/edit/${route.id}',
-                                              extra: route,
+                                            return DataRow(
+                                              color: MaterialStateProperty
+                                                  .resolveWith<Color?>(
+                                                      (Set<MaterialState>
+                                                          states) {
+                                                if (states.contains(
+                                                    MaterialState.hovered)) {
+                                                  return const Color(0xFF4D67AE)
+                                                      .withOpacity(0.08);
+                                                }
+                                                return zebraColor;
+                                              }),
+                                              cells: [
+                                                DataCell(Text(route.name)),
+                                                DataCell(Text(route
+                                                    .initialLatitude
+                                                    .toStringAsFixed(5))),
+                                                DataCell(Text(route
+                                                    .initialLongitude
+                                                    .toStringAsFixed(5))),
+                                                DataCell(Text(route.finalLatitude
+                                                    .toStringAsFixed(5))),
+                                                DataCell(Text(route.finalLongitude
+                                                    .toStringAsFixed(5))),
+                                                DataCell(Text(
+                                                  route.pois
+                                                      .map((e) => e.nombre)
+                                                      .join(', '),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                )),
+                                                DataCell(Row(
+                                                  children: [
+                                                    IconButton(
+                                                      tooltip: "Editar",
+                                                      icon: const Icon(
+                                                          Icons.edit_outlined,
+                                                          color:
+                                                              Color(0xFF4D67AE)),
+                                                      onPressed: () {
+                                                        context.go(
+                                                          '/rutas/edit/${route.id}',
+                                                          extra: route,
+                                                        );
+                                                      },
+                                                    ),
+                                                    IconButton(
+                                                      tooltip: "Eliminar",
+                                                      icon: const Icon(
+                                                          Icons.delete_outline,
+                                                          color:
+                                                              Colors.redAccent),
+                                                      onPressed: () {
+                                                        fnDeleteRoute(
+                                                            route.id, context);
+                                                      },
+                                                    ),
+                                                  ],
+                                                )),
+                                              ],
                                             );
                                           },
                                         ),
-                                        IconButton(
-                                          tooltip: "Eliminar",
-                                          icon: const Icon(Icons.delete_outline,
-                                              color: Colors.redAccent),
-                                          onPressed: () {
-                                            fnDeleteRoute(route.id, context);
-                                          },
-                                        ),
-                                      ],
-                                    )),
-                                  ],
-                                );
-                              },
-                            ),
-                          ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),

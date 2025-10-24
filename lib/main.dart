@@ -16,6 +16,7 @@ import 'package:crud_rutas360/screens/category_form.dart';
 import 'package:crud_rutas360/screens/category_table.dart';
 import 'package:crud_rutas360/screens/create_route.dart';
 import 'package:crud_rutas360/models/route_model.dart';
+import 'package:crud_rutas360/screens/form_wrappers.dart';
 import 'package:crud_rutas360/screens/home.dart';
 import 'package:crud_rutas360/screens/login_page.dart';
 import 'package:crud_rutas360/screens/poi_form.dart';
@@ -43,12 +44,8 @@ class MainApp extends StatelessWidget {
     final sectionNavigatorKey = GlobalKey<NavigatorState>();
     final GoRouter router = GoRouter(
       navigatorKey: rootNavigatorKey,
-      routes: 
-      <RouteBase>[
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const LoginPage(),
-        ),
+      routes: <RouteBase>[
+        GoRoute(path: '/', builder: (context, state) => const LoginPage()),
         StatefulShellRoute.indexedStack(
           redirect: (context, state) {
             final user = FirebaseAuth.instance.currentUser;
@@ -80,25 +77,33 @@ class MainApp extends StatelessWidget {
                       path: 'create',
                       builder: (context, state) => BlocProvider(
                         create: (context) => RouteBloc(FireStoreService()),
-                        child: CreateRoute(
-                          rootNavigatorKey: rootNavigatorKey
-                        ),
+                        child: CreateRoute(rootNavigatorKey: rootNavigatorKey),
                       ),
                     ),
                     GoRoute(
                       path: 'edit/:id',
+                      redirect: (context, state) {
+                        final id = state.pathParameters['id'];
+                        if (id == null || id.isEmpty) {
+                          return '/rutas';
+                        }
+                        return null;
+                      },
                       builder: (context, state) {
+                        final routeId = state.pathParameters['id']!;
+                        final initialRoute = state.extra is MapRoute
+                            ? state.extra as MapRoute
+                            : null;
                         return BlocProvider(
                           create: (context) => RouteBloc(FireStoreService()),
-                          child: CreateRoute(
+                          child: RouteFormWrapper(
+                            routeId: routeId,
                             rootNavigatorKey: rootNavigatorKey,
-                            route: state.extra is MapRoute
-                              ? state.extra as MapRoute
-                              : null,
+                            initialRoute: initialRoute,
                           ),
                         );
                       },
-                    )
+                    ),
                   ],
                 ),
               ],
@@ -118,12 +123,25 @@ class MainApp extends StatelessWidget {
                     ),
                     GoRoute(
                       path: 'edit/:id',
-                      builder: (context, state) {
-                        context.read<PoiBloc>().add(SelectPOI(poi: state.extra as POI));
-                        return const PoiForm();
+                      redirect: (context, state) {
+                        final id = state.pathParameters['id'];
+                        if (id == null || id.isEmpty) {
+                          return '/pois';
+                        }
+                        return null;
                       },
-                    )
-                  ]
+                      builder: (context, state) {
+                        final poiId = state.pathParameters['id']!;
+                        final initialPoi = state.extra is POI
+                            ? state.extra as POI
+                            : null;
+                        return PoiFormWrapper(
+                          poiId: poiId,
+                          initialPoi: initialPoi,
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -136,18 +154,33 @@ class MainApp extends StatelessWidget {
                     GoRoute(
                       path: 'create',
                       builder: (context, state) {
-                        context.read<CategoryBloc>().add(SelectCategory(category: null));
+                        context.read<CategoryBloc>().add(
+                          SelectCategory(category: null),
+                        );
                         return const CategoryForm();
                       },
                     ),
                     GoRoute(
                       path: 'edit/:id',
-                      builder: (context, state) {
-                        context.read<CategoryBloc>().add(SelectCategory(category: state.extra as PoiCategory ));
-                        return const CategoryForm();
+                      redirect: (context, state) {
+                        final id = state.pathParameters['id'];
+                        if (id == null || id.isEmpty) {
+                          return '/categorias';
+                        }
+                        return null;
                       },
-                    )
-                  ]
+                      builder: (context, state) {
+                        final categoryId = state.pathParameters['id']!;
+                        final initialCategory = state.extra is PoiCategory
+                            ? state.extra as PoiCategory
+                            : null;
+                        return CategoryFormWrapper(
+                          categoryId: categoryId,
+                          initialCategory: initialCategory,
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -160,24 +193,39 @@ class MainApp extends StatelessWidget {
                     GoRoute(
                       path: 'create',
                       builder: (context, state) {
-                        context.read<ActivityBloc>().add(SelectActivity(activity: null));
+                        context.read<ActivityBloc>().add(
+                          SelectActivity(activity: null),
+                        );
                         return const ActivityForm();
                       },
                     ),
                     GoRoute(
                       path: 'edit/:id',
-                      builder: (context, state) {
-                        context.read<ActivityBloc>().add(SelectActivity(activity: state.extra as Activity));
-                        return const ActivityForm();
+                      redirect: (context, state) {
+                        final id = state.pathParameters['id'];
+                        if (id == null || id.isEmpty) {
+                          return '/actividades';
+                        }
+                        return null;
                       },
-                    )
-                  ]
+                      builder: (context, state) {
+                        final activityId = state.pathParameters['id']!;
+                        final initialActivity = state.extra is Activity
+                            ? state.extra as Activity
+                            : null;
+                        return ActivityFormWrapper(
+                          activityId: activityId,
+                          initialActivity: initialActivity,
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
           ],
         ),
-      ],  
+      ],
     );
     return MultiBlocProvider(
       providers: [

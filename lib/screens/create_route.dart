@@ -36,7 +36,7 @@ class _CreateRouteState extends State<CreateRoute> {
   final TextEditingController _finalLongController = TextEditingController();
   final MultiSelectController<POI> _multiSelectController =
       MultiSelectController<POI>();
-  bool _initialPOIsApplied = false; // 🔧 agregado
+  bool _initialPOIsApplied = false; 
 
   final Color mainColor = const Color(0xFF4D67AE);
 
@@ -50,7 +50,6 @@ class _CreateRouteState extends State<CreateRoute> {
     _initialLongController.addListener(_updateInitialLatLng);
     _finalLatController.addListener(_updateFinalLatLng);
     _finalLongController.addListener(_updateFinalLatLng);
-    _multiSelectController.addListener(() => setState(() {}));
 
     // Si estamos editando, precargar los datos de la ruta existente
     if (widget.route != null) {
@@ -122,431 +121,439 @@ class _CreateRouteState extends State<CreateRoute> {
           scaffoldMessenger
             ..hideCurrentSnackBar()
             ..showSnackBar(
-              SnackBar(
-                content: Text(state.error),
-                backgroundColor: Colors.red,
-              ),
+              SnackBar(content: Text(state.error), backgroundColor: Colors.red),
             );
         }
       },
       child: BlocBuilder<RouteBloc, RouteState>(
         builder: (context, state) {
           if (state is RouteCreating) {
-          const double kFormWidth = 500;
-          const double kGutter = 24;
+            const double kFormWidth = 500;
+            const double kGutter = 24;
 
-          return Container(
-            color: Colors.grey[50],
-            padding: const EdgeInsets.all(kGutter),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ==== PANEL DE FORMULARIO ====
-                SizedBox(
-                  width: kFormWidth,
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: SingleChildScrollView(
-                        child: Form(
-                          key: _createRouteFormKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _isEditing ? "Editar Ruta" : "Crear Ruta",
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _isEditing
-                                    ? "Modifica los datos de la ruta seleccionada"
-                                    : "Define los puntos de inicio y fin para crear una nueva ruta",
-                                style: const TextStyle(color: Colors.black54),
-                              ),
-                              const Divider(height: 24),
-
-                              // Información de la ruta
-                              BuildSection(
-                                mainColor: mainColor,
-                                title: "Información de la Ruta",
-                                subtitle:
-                                    "Nombre identificador de la ruta",
-                                child: TextFormField(
-                                  controller: _nameController,
-                                  autocorrect: true,
-                                  enableSuggestions: true,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Nombre de la Ruta',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  validator: (value) =>
-                                      InputValidators.validateTextField(
-                                    value,
-                                    emptyMessage:
-                                        'Por favor ingresa un nombre',
+            return Container(
+              color: Colors.grey[50],
+              padding: const EdgeInsets.all(kGutter),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ==== PANEL DE FORMULARIO ====
+                  SizedBox(
+                    width: kFormWidth,
+                    child: Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: SingleChildScrollView(
+                          child: Form(
+                            key: _createRouteFormKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _isEditing ? "Editar Ruta" : "Crear Ruta",
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Punto inicial
-                              BuildSection(
-                                mainColor: mainColor,
-                                title: "Punto Inicial",
-                                subtitle: "Coordenadas del punto de partida",
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: _initialLatController,
-                                        autocorrect: false,
-                                        enableSuggestions: false,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Latitud',
-                                          border: OutlineInputBorder(),
-                                        ),
-                                        keyboardType:
-                                            const TextInputType
-                                                .numberWithOptions(
-                                          decimal: true,
-                                          signed: true,
-                                        ),
-                                        validator:
-                                            InputValidators.validateLatitude,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller: _initialLongController,
-                                        autocorrect: false,
-                                        enableSuggestions: false,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Longitud',
-                                          border: OutlineInputBorder(),
-                                        ),
-                                        keyboardType:
-                                            const TextInputType
-                                                .numberWithOptions(
-                                          decimal: true,
-                                          signed: true,
-                                        ),
-                                        validator:
-                                            InputValidators.validateLongitude,
-                                      ),
-                                    ),
-                                  ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  _isEditing
+                                      ? "Modifica los datos de la ruta seleccionada"
+                                      : "Define los puntos de inicio y fin para crear una nueva ruta",
+                                  style: const TextStyle(color: Colors.black54),
                                 ),
-                              ),
-                              const SizedBox(height: 20),
+                                const Divider(height: 24),
 
-                              // Punto final
-                              BuildSection(
-                                mainColor: mainColor,
-                                title: "Punto Final",
-                                subtitle: "Coordenadas del punto de destino",
-                                child: Row(
+                                // Información de la ruta
+                                BuildSection(
+                                  mainColor: mainColor,
+                                  title: "Información de la Ruta",
+                                  subtitle: "Nombre identificador de la ruta",
+                                  child: TextFormField(
+                                    controller: _nameController,
+                                    autocorrect: true,
+                                    enableSuggestions: true,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Nombre de la Ruta',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    validator: (value) =>
+                                        InputValidators.validateTextField(
+                                          value,
+                                          emptyMessage:
+                                              'Por favor ingresa un nombre',
+                                        ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Punto inicial
+                                BuildSection(
+                                  mainColor: mainColor,
+                                  title: "Punto Inicial",
+                                  subtitle: "Coordenadas del punto de partida",
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _initialLatController,
+                                          autocorrect: false,
+                                          enableSuggestions: false,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Latitud',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          keyboardType:
+                                              const TextInputType.numberWithOptions(
+                                                decimal: true,
+                                                signed: true,
+                                              ),
+                                          validator:
+                                              InputValidators.validateLatitude,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _initialLongController,
+                                          autocorrect: false,
+                                          enableSuggestions: false,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Longitud',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          keyboardType:
+                                              const TextInputType.numberWithOptions(
+                                                decimal: true,
+                                                signed: true,
+                                              ),
+                                          validator:
+                                              InputValidators.validateLongitude,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Punto final
+                                BuildSection(
+                                  mainColor: mainColor,
+                                  title: "Punto Final",
+                                  subtitle: "Coordenadas del punto de destino",
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _finalLatController,
+                                          autocorrect: false,
+                                          enableSuggestions: false,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Latitud',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          keyboardType:
+                                              const TextInputType.numberWithOptions(
+                                                decimal: true,
+                                                signed: true,
+                                              ),
+                                          validator:
+                                              InputValidators.validateLatitude,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _finalLongController,
+                                          autocorrect: false,
+                                          enableSuggestions: false,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Longitud',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          keyboardType:
+                                              const TextInputType.numberWithOptions(
+                                                decimal: true,
+                                                signed: true,
+                                              ),
+                                          validator:
+                                              InputValidators.validateLongitude,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Puntos de interés
+                                BuildSection(
+                                  mainColor: mainColor,
+                                  title: "Puntos de Interés",
+                                  subtitle: "Selecciona los POIs a incluir",
+                                  child: (() {
+                                    final routePOIs = widget.route?.pois ?? [];
+                                    final unasignedPOIs = state.unasignedPOIs;
+
+                                    // Unir los POIs de la ruta y los no asignados
+                                    final allPOIsMap = <String, POI>{};
+                                    for (var poi in routePOIs) {
+                                      allPOIsMap[poi.id] = poi;
+                                    }
+                                    for (var poi in unasignedPOIs) {
+                                      allPOIsMap[poi.id] = poi;
+                                    }
+                                    final allPOIs = allPOIsMap.values.toList();
+
+                                    // Preseleccionar POIs si estamos editando
+                                    if (routePOIs.isNotEmpty &&
+                                        !_initialPOIsApplied) {
+                                      // ✅ corrección
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                            try {
+                                              _multiSelectController
+                                                  .selectWhere(
+                                                    (element) => routePOIs.any(
+                                                      (poi) =>
+                                                          poi.id ==
+                                                          element.value.id,
+                                                    ),
+                                                  );
+                                            } catch (_) {
+                                            } finally {
+                                              // 🔧 agregado
+                                              _initialPOIsApplied =
+                                                  true; // 🔧 agregado
+                                            }
+                                          });
+                                    }
+                                    if (routePOIs.isEmpty &&
+                                        !_initialPOIsApplied) {
+                                      // 🔧 agregado
+                                      _initialPOIsApplied = true; // 🔧 agregado
+                                    } // 🔧 agregado
+
+                                    if (allPOIs.isEmpty) {
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8.0,
+                                        ),
+                                        child: Text(
+                                          'No hay puntos de interés disponibles para asignar.',
+                                          style: TextStyle(
+                                            color: Colors.red[700],
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      );
+                                    } else {
+                                      return MultiDropdown(
+                                        items: allPOIs
+                                            .map(
+                                              (poi) => DropdownItem(
+                                                label: poi.nombre,
+                                                value: poi,
+                                              ),
+                                            )
+                                            .toList(),
+                                        controller: _multiSelectController,
+                                        enabled: true,
+                                        searchEnabled: true,
+                                        fieldDecoration: FieldDecoration(
+                                          labelText: 'Selecciona POIs',
+                                          hintText: 'Selecciona POIs',
+                                          border: const OutlineInputBorder(),
+                                        ),
+                                        searchDecoration:
+                                            const SearchFieldDecoration(
+                                              hintText: 'Buscar',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                      );
+                                    }
+                                  })(),
+                                ),
+                                const SizedBox(height: 32),
+
+                                // Botones de acción
+                                Row(
                                   children: [
                                     Expanded(
-                                      child: TextFormField(
-                                        controller: _finalLatController,
-                                        autocorrect: false,
-                                        enableSuggestions: false,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Latitud',
-                                          border: OutlineInputBorder(),
+                                      child: TextButton(
+                                        onPressed: () => context.pop(),
+                                        child: Text(
+                                          "Cancelar",
+                                          style: TextStyle(color: mainColor),
                                         ),
-                                        keyboardType:
-                                            const TextInputType
-                                                .numberWithOptions(
-                                          decimal: true,
-                                          signed: true,
-                                        ),
-                                        validator:
-                                            InputValidators.validateLatitude,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
-                                      child: TextFormField(
-                                        controller: _finalLongController,
-                                        autocorrect: false,
-                                        enableSuggestions: false,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Longitud',
-                                          border: OutlineInputBorder(),
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          if (_createRouteFormKey.currentState!
+                                              .validate()) {
+                                            // ✅ corrección
+                                            _fnAddRoute(); // ✅ corrección
+                                          } // ✅ corrección
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: mainColor,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 16,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
                                         ),
-                                        keyboardType:
-                                            const TextInputType
-                                                .numberWithOptions(
-                                          decimal: true,
-                                          signed: true,
+                                        child: Text(
+                                          _isEditing
+                                              ? 'Actualizar ruta'
+                                              : 'Crear ruta',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
                                         ),
-                                        validator:
-                                            InputValidators.validateLongitude,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Puntos de interés
-                              BuildSection(
-                                mainColor: mainColor,
-                                title: "Puntos de Interés",
-                                subtitle: "Selecciona los POIs a incluir",
-                                child: (() {
-                                  final routePOIs = widget.route?.pois ?? [];
-                                  final unasignedPOIs = state.unasignedPOIs;
-
-                                  // Unir los POIs de la ruta y los no asignados
-                                  final allPOIsMap = <String, POI>{};
-                                  for (var poi in routePOIs) {
-                                    allPOIsMap[poi.id] = poi;
-                                  }
-                                  for (var poi in unasignedPOIs) {
-                                    allPOIsMap[poi.id] = poi;
-                                  }
-                                  final allPOIs =
-                                      allPOIsMap.values.toList();
-
-                                  // Preseleccionar POIs si estamos editando
-                                  if (routePOIs.isNotEmpty &&
-                                      !_initialPOIsApplied) { // ✅ corrección
-                                    WidgetsBinding.instance
-                                        .addPostFrameCallback((_) {
-                                      try {
-                                        _multiSelectController.selectWhere(
-                                          (element) => routePOIs.any(
-                                            (poi) =>
-                                                poi.id ==
-                                                element.value.id,
-                                          ),
-                                        );
-                                      } catch (_) {} finally { // 🔧 agregado
-                                        _initialPOIsApplied = true; // 🔧 agregado
-                                      }
-                                    });
-                                  }
-                                  if (routePOIs.isEmpty &&
-                                      !_initialPOIsApplied) { // 🔧 agregado
-                                    _initialPOIsApplied = true; // 🔧 agregado
-                                  } // 🔧 agregado
-
-                                  if (allPOIs.isEmpty) {
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.symmetric(
-                                              vertical: 8.0),
-                                      child: Text(
-                                        'No hay puntos de interés disponibles para asignar.',
-                                        style: TextStyle(
-                                          color: Colors.red[700],
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    );
-                                  } else {
-                                    return MultiDropdown(
-                                      items: allPOIs
-                                          .map(
-                                            (poi) => DropdownItem(
-                                              label: poi.nombre,
-                                              value: poi,
-                                            ),
-                                          )
-                                          .toList(),
-                                      controller:
-                                          _multiSelectController,
-                                      enabled: true,
-                                      searchEnabled: true,
-                                      fieldDecoration: FieldDecoration(
-                                        labelText: 'Selecciona POIs',
-                                        hintText: 'Selecciona POIs',
-                                        border: const OutlineInputBorder(),
-                                      ),
-                                      searchDecoration:
-                                          const SearchFieldDecoration(
-                                        hintText: 'Buscar',
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    );
-                                  }
-                                })(),
-                              ),
-                              const SizedBox(height: 32),
-
-                              // Botones de acción
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextButton(
-                                      onPressed: () => context.pop(),
-                                      child: Text(
-                                        "Cancelar",
-                                        style:
-                                            TextStyle(color: mainColor),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        if (_createRouteFormKey
-                                            .currentState!
-                                            .validate()) { // ✅ corrección
-                                          _fnAddRoute(); // ✅ corrección
-                                        } // ✅ corrección
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: mainColor,
-                                        padding:
-                                            const EdgeInsets.symmetric(
-                                          vertical: 16,
-                                        ),
-                                        shape:
-                                            RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        _isEditing
-                                            ? 'Actualizar ruta'
-                                            : 'Crear ruta',
-                                        style: const TextStyle(
-                                            color: Colors.white),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-                const SizedBox(width: kGutter),
+                  const SizedBox(width: kGutter),
 
-                // ==== PANEL DE VISTA PREVIA ====
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Vista previa de la Ruta",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                  // ==== PANEL DE VISTA PREVIA ====
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Vista previa de la Ruta",
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        "El mapa mostrará la ruta al ingresar las coordenadas",
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: FlutterMap(
-                            mapController: mapController,
-                            options: MapOptions(
-                              initialCenter: _initialLatLng ??
-                                  _finalLatLng ??
-                                  LatLng(-35.6960, -71.4060),
-                              initialZoom: 13,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate:
-                                    'https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=$apiKey',
-                              ),
-                              MarkerLayer(
-                                markers: [
-                                  if (_initialLatLng != null)
-                                    Marker(
-                                      point: _initialLatLng!,
-                                      width: 40,
-                                      height: 40,
-                                      child: const Icon(
-                                        Icons.fiber_manual_record,
-                                        color: Colors.green,
-                                        size: 30,
-                                      ),
-                                    ),
-                                  if (_finalLatLng != null)
-                                    Marker(
-                                      point: _finalLatLng!,
-                                      width: 40,
-                                      height: 40,
-                                      child: const Icon(
-                                        Icons.location_on_sharp,
-                                        color: Colors.red,
-                                        size: 30,
-                                      ),
-                                    ),
-                                  ..._multiSelectController
-                                      .selectedItems
-                                      .map(
-                                    (item) => Marker(
-                                      point: LatLng(
-                                        item.value.latitud,
-                                        item.value.longitud,
-                                      ),
-                                      width: 32,
-                                      height: 32,
-                                      child: const Icon(
-                                        Icons.location_on,
-                                        color: Colors.purple,
-                                        size: 32,
-                                      ),
-                                    ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          "El mapa mostrará la ruta al ingresar las coordenadas",
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: FlutterMap(
+                              mapController: mapController,
+                              options: MapOptions(
+                                initialCenter:
+                                    _initialLatLng ??
+                                    _finalLatLng ??
+                                    const LatLng(-35.7, -71.4),
+                                initialZoom: 13,
+                                minZoom: 5,
+                                maxZoom: 17,
+                                keepAlive: true,
+                                cameraConstraint: CameraConstraint.contain(
+                                  bounds: LatLngBounds(
+                                    const LatLng(-56.0, -76.0),
+                                    const LatLng(-17.0, -66.0),
                                   ),
-                                ],
+                                ),
+                                interactionOptions: const InteractionOptions(
+                                  flags:
+                                      InteractiveFlag.all &
+                                      ~InteractiveFlag.flingAnimation,
+                                ),
                               ),
-                              if (_initialLatLng != null &&
-                                  _finalLatLng != null)
-                                PolylineLayer(
-                                  polylines: [
-                                    Polyline(
-                                      points: [
-                                        _initialLatLng!,
-                                        _finalLatLng!
-                                      ],
-                                      color: mainColor,
-                                      strokeWidth: 4,
+                              children: [
+                                TileLayer(
+                                  urlTemplate:
+                                      'https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=$apiKey',
+                                ),
+                                MarkerLayer(
+                                  markers: [
+                                    if (_initialLatLng != null)
+                                      Marker(
+                                        point: _initialLatLng!,
+                                        width: 40,
+                                        height: 40,
+                                        child: const Icon(
+                                          Icons.fiber_manual_record,
+                                          color: Colors.green,
+                                          size: 30,
+                                        ),
+                                      ),
+                                    if (_finalLatLng != null)
+                                      Marker(
+                                        point: _finalLatLng!,
+                                        width: 40,
+                                        height: 40,
+                                        child: const Icon(
+                                          Icons.location_on_sharp,
+                                          color: Colors.red,
+                                          size: 30,
+                                        ),
+                                      ),
+                                    ..._multiSelectController.selectedItems.map(
+                                      (item) => Marker(
+                                        point: LatLng(
+                                          item.value.latitud,
+                                          item.value.longitud,
+                                        ),
+                                        width: 32,
+                                        height: 32,
+                                        child: const Icon(
+                                          Icons.location_on,
+                                          color: Colors.purple,
+                                          size: 32,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
-                            ],
+                                if (_initialLatLng != null &&
+                                    _finalLatLng != null)
+                                  PolylineLayer(
+                                    polylines: [
+                                      Polyline(
+                                        points: [
+                                          _initialLatLng!,
+                                          _finalLatLng!,
+                                        ],
+                                        color: mainColor,
+                                        strokeWidth: 4,
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
+                ],
+              ),
+            );
           } else {
             return const Center(child: CircularProgressIndicator());
           }
         },
-      ), // 🔧 agregado
+      ), // 
     );
   }
 
