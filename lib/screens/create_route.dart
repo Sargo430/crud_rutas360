@@ -165,7 +165,8 @@ class _CreateRouteState extends State<CreateRoute> {
       final okInitialLat =
           InputValidators.validateLatitude(_initialLatController.text) == null;
       final okInitialLng =
-          InputValidators.validateLongitude(_initialLongController.text) == null;
+          InputValidators.validateLongitude(_initialLongController.text) ==
+          null;
       final okFinalLat =
           InputValidators.validateLatitude(_finalLatController.text) == null;
       final okFinalLng =
@@ -221,13 +222,15 @@ class _CreateRouteState extends State<CreateRoute> {
       if (_routePoints.isNotEmpty) {
         try {
           final clean = _routePoints
-              .where((p) =>
-                  p.latitude.isFinite &&
-                  p.longitude.isFinite &&
-                  p.latitude >= -90 &&
-                  p.latitude <= 90 &&
-                  p.longitude >= -180 &&
-                  p.longitude <= 180)
+              .where(
+                (p) =>
+                    p.latitude.isFinite &&
+                    p.longitude.isFinite &&
+                    p.latitude >= -90 &&
+                    p.latitude <= 90 &&
+                    p.longitude >= -180 &&
+                    p.longitude <= 180,
+              )
               .toList(growable: false);
           if (clean.isEmpty) {
             // avoid fitting when all points are invalid
@@ -237,7 +240,8 @@ class _CreateRouteState extends State<CreateRoute> {
               ? LatLngBounds.fromPoints(clean)
               : LatLngBounds(clean.first, clean.first);
           if (!_mapReady) {
-            _pendingRouteBounds = bounds; // diferir hasta que el mapa esté listo
+            _pendingRouteBounds =
+                bounds; // diferir hasta que el mapa esté listo
           } else {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
@@ -683,22 +687,36 @@ class _CreateRouteState extends State<CreateRoute> {
                                     _finalLatLng ??
                                     LatLng(-35.6960, -71.4060),
                                 initialZoom: 13,
+
+                                // ⬇️ Control de zoom y restricción de cámara (añadido)
+                                minZoom: 4,
+                                maxZoom: 18,
+                                cameraConstraint: CameraConstraint.contain(
+                                  bounds: LatLngBounds(
+                                    const LatLng(-90, -180),
+                                    const LatLng(90, 180),
+                                  ),
+                                ),
+
                                 onMapReady: () {
                                   _mapReady = true;
                                   if (_pendingRouteBounds != null) {
                                     final b = _pendingRouteBounds!;
                                     _pendingRouteBounds = null;
-                                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                                      if (!mounted) return;
-                                      try {
-                                        mapController.fitCamera(
-                                          CameraFit.bounds(
-                                            bounds: b,
-                                            padding: const EdgeInsets.all(24),
-                                          ),
-                                        );
-                                      } catch (_) {}
-                                    });
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          if (!mounted) return;
+                                          try {
+                                            mapController.fitCamera(
+                                              CameraFit.bounds(
+                                                bounds: b,
+                                                padding: const EdgeInsets.all(
+                                                  24,
+                                                ),
+                                              ),
+                                            );
+                                          } catch (_) {}
+                                        });
                                   }
                                 },
                               ),
@@ -706,6 +724,11 @@ class _CreateRouteState extends State<CreateRoute> {
                                 TileLayer(
                                   urlTemplate:
                                       'https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${ApiKeys.maptilerKey}',
+
+                                  // ⬇️ Límites de zoom del mapa base (añadido)
+                                  minZoom: 4,
+                                  maxZoom: 18,
+                                  maxNativeZoom: 18,
                                 ),
                                 MarkerLayer(
                                   markers: [
@@ -764,13 +787,15 @@ class _CreateRouteState extends State<CreateRoute> {
                                     polylines: [
                                       Polyline(
                                         points: _routePoints
-                                            .where((p) =>
-                                                p.latitude.isFinite &&
-                                                p.longitude.isFinite &&
-                                                p.latitude >= -90 &&
-                                                p.latitude <= 90 &&
-                                                p.longitude >= -180 &&
-                                                p.longitude <= 180)
+                                            .where(
+                                              (p) =>
+                                                  p.latitude.isFinite &&
+                                                  p.longitude.isFinite &&
+                                                  p.latitude >= -90 &&
+                                                  p.latitude <= 90 &&
+                                                  p.longitude >= -180 &&
+                                                  p.longitude <= 180,
+                                            )
                                             .toList(growable: false),
                                         color: mainColor,
                                         strokeWidth: 4,
