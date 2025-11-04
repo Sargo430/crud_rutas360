@@ -18,10 +18,11 @@ class TablaRutas extends StatefulWidget {
 }
 
 class _TablaRutasState extends State<TablaRutas> {
+  final ScrollController _verticalController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-    // Primera carga
     final bloc = context.read<RouteBloc>();
     if (bloc.state is! RouteLoaded && bloc.state is! RouteLoading) {
       bloc.add(LoadRoute());
@@ -31,21 +32,22 @@ class _TablaRutasState extends State<TablaRutas> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 👇 Cada vez que esta pantalla vuelve a estar activa (por ejemplo, vuelves desde /pois),
-    // recargamos las rutas. Esto evita depender de listeners de GoRouter.
     context.read<RouteBloc>().add(LoadRoute());
+  }
+
+  @override
+  void dispose() {
+    _verticalController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocListener(
       listeners: [
-        // 👇 Si hubo una operación exitosa en POI (crear/editar/eliminar),
-        // refrescamos las rutas para que la tabla se actualice sin recargar.
         BlocListener<PoiBloc, PoiState>(
           listener: (context, state) {
-            if (state is PoiLoadedWithSuccess ||
-                state is PoiOperationSuccess) {
+            if (state is PoiLoadedWithSuccess || state is PoiOperationSuccess) {
               context.read<RouteBloc>().add(LoadRoute());
             }
           },
@@ -119,7 +121,7 @@ class _TablaRutasState extends State<TablaRutas> {
                                   ),
                                   elevation: 3,
                                   shadowColor:
-                                      const Color(0xFF4D67AE).withOpacity(0.3),
+                                      const Color(0xFF4D67AE).withValues(alpha: 0.3),
                                 ),
                               ),
                             ],
@@ -127,7 +129,7 @@ class _TablaRutasState extends State<TablaRutas> {
                           const SizedBox(height: 16),
                           Container(
                             height: 1,
-                            color: Colors.grey.withOpacity(0.2),
+                            color: Colors.grey.withValues(alpha: 0.2),
                           ),
                         ],
                       ),
@@ -162,7 +164,7 @@ class _TablaRutasState extends State<TablaRutas> {
                       ),
                     ),
 
-                    // ======= TABLA =======
+                    // ======= TABLA DE RUTAS =======
                     Expanded(
                       child: Container(
                         width: double.infinity,
@@ -172,7 +174,7 @@ class _TablaRutasState extends State<TablaRutas> {
                           border: Border.all(color: Colors.grey.shade200),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 8,
                               offset: const Offset(0, 3),
                             ),
@@ -180,138 +182,175 @@ class _TablaRutasState extends State<TablaRutas> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              return Scrollbar(
-                                thumbVisibility: true,
-                                radius: const Radius.circular(10),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.vertical,
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        minWidth: constraints.maxWidth,
-                                      ),
-                                      child: DataTableTheme(
-                                        data: DataTableThemeData(
-                                          headingRowHeight: headerHeight,
-                                          dataRowMinHeight: rowHeight,
-                                          dataRowMaxHeight: rowHeight,
-                                          headingRowColor:
-                                              MaterialStateProperty.all(
-                                                  const Color(0xFFF5F6F7)),
-                                          headingTextStyle: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFF4D67AE),
-                                            fontSize: 14,
-                                          ),
-                                          dataTextStyle: const TextStyle(
-                                            fontSize: 13.5,
-                                            color: Color(0xFF1F1F1F),
-                                          ),
-                                        ),
-                                        child: DataTable(
-                                          columnSpacing: 26,
-                                          horizontalMargin: 22,
-                                          border: TableBorder(
-                                            horizontalInside: BorderSide(
-                                              width: 0.4,
-                                              color: Colors.grey.shade300,
-                                            ),
-                                          ),
-                                          columns: const [
-                                            DataColumn(label: Text("Nombre")),
-                                            DataColumn(
-                                                label: Text("Latitud inicio")),
-                                            DataColumn(
-                                                label: Text("Longitud inicio")),
-                                            DataColumn(
-                                                label: Text("Latitud fin")),
-                                            DataColumn(
-                                                label: Text("Longitud fin")),
-                                            DataColumn(
-                                                label: Text("Puntos de interés")),
-                                            DataColumn(label: Text("Acciones")),
-                                          ],
-                                          rows: List<DataRow>.generate(
-                                            state.routes.length,
-                                            (index) {
-                                              final route = state.routes[index];
-                                              final Color zebraColor = index.isEven
-                                                  ? Colors.white
-                                                  : const Color(0xFFF9FAFB);
-
-                                              return DataRow(
-                                                color: MaterialStateProperty
-                                                    .resolveWith<Color?>(
-                                                  (Set<MaterialState> states) {
-                                                    if (states.contains(
-                                                        MaterialState.hovered)) {
-                                                      return const Color(0xFF4D67AE)
-                                                          .withOpacity(0.08);
-                                                    }
-                                                    return zebraColor;
-                                                  },
-                                                ),
-                                                cells: [
-                                                  DataCell(Text(route.name)),
-                                                  DataCell(Text(route
-                                                      .initialLatitude
-                                                      .toStringAsFixed(5))),
-                                                  DataCell(Text(route
-                                                      .initialLongitude
-                                                      .toStringAsFixed(5))),
-                                                  DataCell(Text(route.finalLatitude
-                                                      .toStringAsFixed(5))),
-                                                  DataCell(Text(route.finalLongitude
-                                                      .toStringAsFixed(5))),
-                                                  DataCell(Text(
-                                                    route.pois
-                                                        .map((e) => e.nombre)
-                                                        .join(', '),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  )),
-                                                  DataCell(Row(
-                                                    children: [
-                                                      IconButton(
-                                                        tooltip: "Editar",
-                                                        icon: const Icon(
-                                                            Icons.edit_outlined,
-                                                            color:
-                                                                Color(0xFF4D67AE)),
-                                                        onPressed: () {
-                                                          context.go(
-                                                            '/rutas/edit/${route.id}',
-                                                            extra: route,
-                                                          );
-                                                        },
-                                                      ),
-                                                      IconButton(
-                                                        tooltip: "Eliminar",
-                                                        icon: const Icon(
-                                                            Icons.delete_outline,
-                                                            color:
-                                                                Colors.redAccent),
-                                                        onPressed: () {
-                                                          fnDeleteRoute(
-                                                              route.id, context);
-                                                        },
-                                                      ),
-                                                    ],
-                                                  )),
-                                                ],
-                                              );
-                                            },
-                                          ),
+                          child: Scrollbar(
+                            controller: _verticalController,
+                            thumbVisibility: true,
+                            trackVisibility: true,
+                            radius: const Radius.circular(6),
+                            thickness: 8,
+                            child: SingleChildScrollView(
+                              controller: _verticalController,
+                              scrollDirection: Axis.vertical,
+                              child: DataTableTheme(
+                                data: DataTableThemeData(
+                                  headingRowHeight: headerHeight,
+                                  dataRowMinHeight: rowHeight,
+                                  dataRowMaxHeight: rowHeight,
+                                  headingRowColor:
+                                      WidgetStateProperty.all(
+                                          const Color(0xFFF5F6F7)),
+                                  headingTextStyle: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF4D67AE),
+                                    fontSize: 14,
+                                  ),
+                                  dataTextStyle: const TextStyle(
+                                    fontSize: 13.5,
+                                    color: Color(0xFF1F1F1F),
+                                  ),
+                                ),
+                                child: DataTable(
+                                  columnSpacing: 24,
+                                  horizontalMargin: 22,
+                                  border: TableBorder(
+                                    horizontalInside: BorderSide(
+                                      width: 0.4,
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  columns: const [
+                                    DataColumn(label: Text("Nombre")),
+                                    DataColumn(
+                                      label: SizedBox(
+                                        width: 80,
+                                        child: Text(
+                                          "Latitud\ninicio",
+                                          textAlign: TextAlign.center,
+                                          softWrap: true,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
                                         ),
                                       ),
                                     ),
+                                    DataColumn(
+                                      label: SizedBox(
+                                        width: 90,
+                                        child: Text(
+                                          "Longitud\ninicio",
+                                          textAlign: TextAlign.center,
+                                          softWrap: true,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ),
+                                    DataColumn(
+                                      label: SizedBox(
+                                        width: 80,
+                                        child: Text(
+                                          "Latitud\nfin",
+                                          textAlign: TextAlign.center,
+                                          softWrap: true,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ),
+                                    DataColumn(
+                                      label: SizedBox(
+                                        width: 90,
+                                        child: Text(
+                                          "Longitud\nfin",
+                                          textAlign: TextAlign.center,
+                                          softWrap: true,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ),
+                                    DataColumn(
+                                      label: SizedBox(
+                                        width: 220,
+                                        child: Text(
+                                          "Puntos de interés",
+                                          textAlign: TextAlign.center,
+                                          softWrap: true,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ),
+                                    DataColumn(label: Text("Acciones")),
+                                  ],
+                                  rows: List<DataRow>.generate(
+                                    state.routes.length,
+                                    (index) {
+                                      final route = state.routes[index];
+                                      final Color zebraColor = index.isEven
+                                          ? Colors.white
+                                          : const Color(0xFFF9FAFB);
+
+                                      return DataRow(
+                                        color: WidgetStateProperty.resolveWith<Color?>(
+                                          (Set<WidgetState> states) {
+                                            if (states.contains(WidgetState.hovered)) {
+                                              return const Color(0xFF4D67AE).withValues(alpha: 0.08);
+                                            }
+                                            return zebraColor;
+                                          },
+                                        ),
+                                        cells: [
+                                          DataCell(Text(route.name,
+                                              overflow: TextOverflow.ellipsis)),
+                                          DataCell(Text(route.initialLatitude
+                                              .toStringAsFixed(5))),
+                                          DataCell(Text(route.initialLongitude
+                                              .toStringAsFixed(5))),
+                                          DataCell(Text(route.finalLatitude
+                                              .toStringAsFixed(5))),
+                                          DataCell(Text(route.finalLongitude
+                                              .toStringAsFixed(5))),
+                                          DataCell(Text(
+                                            route.pois
+                                                .map((e) => e.nombre)
+                                                .join(', '),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 2,
+                                          )),
+                                          DataCell(Row(
+                                            children: [
+                                              IconButton(
+                                                tooltip: "Editar",
+                                                icon: const Icon(
+                                                  Icons.edit_outlined,
+                                                  color: Color(0xFF4D67AE),
+                                                ),
+                                                onPressed: () {
+                                                  context.go(
+                                                    '/rutas/edit/${route.id}',
+                                                    extra: route,
+                                                  );
+                                                },
+                                              ),
+                                              IconButton(
+                                                tooltip: "Eliminar",
+                                                icon: const Icon(
+                                                  Icons.delete_outline,
+                                                  color: Colors.redAccent,
+                                                ),
+                                                onPressed: () {
+                                                  fnDeleteRoute(route.id, context);
+                                                },
+                                              ),
+                                            ],
+                                          )),
+                                        ],
+                                      );
+                                    },
                                   ),
                                 ),
-                              );
-                            },
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -333,10 +372,8 @@ class _TablaRutasState extends State<TablaRutas> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        title: const Text(
-          "Eliminar ruta",
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
+        title: const Text("Eliminar ruta",
+            style: TextStyle(fontWeight: FontWeight.w700)),
         content: const Text(
           "¿Seguro que deseas eliminar esta ruta?",
           style: TextStyle(fontSize: 14),
@@ -351,10 +388,8 @@ class _TablaRutasState extends State<TablaRutas> {
               BlocProvider.of<RouteBloc>(context).add(DeleteRoute(id));
               Navigator.of(context).pop();
             },
-            child: const Text(
-              "Eliminar",
-              style: TextStyle(color: Colors.redAccent),
-            ),
+            child: const Text("Eliminar",
+                style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),

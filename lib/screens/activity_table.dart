@@ -179,7 +179,7 @@ class _ActivityTableState extends State<ActivityTable> {
                             headingRowHeight: headerHeight,
                             dataRowMinHeight: rowHeight,
                             dataRowMaxHeight: rowHeight,
-                            headingRowColor: MaterialStateProperty.all(
+                            headingRowColor: WidgetStateProperty.all(
                                 const Color(0xFFF5F6F7)),
                             headingTextStyle: const TextStyle(
                               fontWeight: FontWeight.w700,
@@ -218,10 +218,10 @@ class _ActivityTableState extends State<ActivityTable> {
                                     : const Color(0xFFF9FAFB);
 
                                 return DataRow(
-                                  color: MaterialStateProperty.resolveWith<
-                                      Color?>((Set<MaterialState> states) {
+                                  color: WidgetStateProperty.resolveWith<
+                                      Color?>((Set<WidgetState> states) {
                                     if (states
-                                        .contains(MaterialState.hovered)) {
+                                        .contains(WidgetState.hovered)) {
                                       return const Color(0xFF4D67AE)
                                           .withValues(alpha:0.08);
                                     }
