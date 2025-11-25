@@ -68,7 +68,7 @@ class _ActivityFormState extends State<ActivityForm> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Crear Actividad",
+                  activity == null ? "Crear Actividad" : "Actualizar Actividad",
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,

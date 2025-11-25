@@ -730,6 +730,7 @@ class _CreateRouteState extends State<CreateRoute> {
       pois: _multiSelectController.selectedItems
           .map((item) => item.value)
           .toList(),
+      geometry: _routePoints,
     );
 
     if (_isEditing) {

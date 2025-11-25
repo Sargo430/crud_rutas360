@@ -1,4 +1,5 @@
 import 'package:crud_rutas360/models/poi_model.dart';
+import 'package:latlong2/latlong.dart';
 
 class MapRoute{
   final String id;
@@ -8,6 +9,7 @@ class MapRoute{
   final double finalLongitude;
   final String name;
   final List<POI> pois;
+  final List<LatLng> geometry;
   MapRoute({
     required this.id,
     required this.initialLatitude,
@@ -16,5 +18,6 @@ class MapRoute{
     required this.finalLongitude,
     required this.name,
     required this.pois,
+    required this.geometry,
   });
 }

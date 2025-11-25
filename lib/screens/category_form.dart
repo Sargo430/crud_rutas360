@@ -67,9 +67,9 @@ class _CategoryFormState extends State<CategoryForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Título
+                // Título   
                 Text(
-                  "Crear Categoría",
+                  category == null ? "Crear Categoría" : "Actualizar Categoria",
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,

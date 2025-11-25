@@ -254,8 +254,8 @@ class _PoiFormState extends State<PoiForm> with SingleTickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Crear Punto de Interés',
+                Text(
+                  poi == null ? "Crear Punto de Interés" : "Actualizar Punto de Interés",
                   style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 24),

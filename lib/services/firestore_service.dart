@@ -5,6 +5,7 @@ import 'package:crud_rutas360/models/poi_model.dart';
 import 'package:crud_rutas360/models/route_model.dart';
 import 'package:crud_rutas360/services/storage_service.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:latlong2/latlong.dart';
 
 class FireStoreService {
   final CollectionReference<Map<String, dynamic>> _routesCollection =
@@ -497,6 +498,15 @@ class FireStoreService {
             finalLongitude: (data['longitud_fin'] ?? 0).toDouble(),
             name: data['nombre']?.toString() ?? '',
             pois: pois,
+            geometry: data['geometry'] != null
+                ? (data['geometry'] as List)
+                    .map<LatLng>((point) {
+                      final lat = ((point['lat'] ?? 0) as num).toDouble();
+                      final lng = ((point['lng'] ?? 0) as num).toDouble();
+                      return LatLng(lat, lng);
+                    })
+                    .toList()
+                : [],
           ),
         );
       }
@@ -532,6 +542,15 @@ class FireStoreService {
         finalLongitude: finalLongitude,
         name: name,
         pois: pois,
+        geometry: data['geometry'] != null
+            ? (data['geometry'] as List)
+                .map<LatLng>((point) {
+                  final lat = ((point['lat'] ?? 0) as num).toDouble();
+                  final lng = ((point['lng'] ?? 0) as num).toDouble();
+                  return LatLng(lat, lng);
+                })
+                .toList()
+            : [],
       );
     } catch (e) {
       throw Exception('Error fetching Route: $e');
@@ -545,6 +564,9 @@ class FireStoreService {
       'longitud_inicio': route.initialLongitude,
       'latitud_fin': route.finalLatitude,
       'longitud_fin': route.finalLongitude,
+      'geometry': route.geometry
+          .map((point) => {'lat': point.latitude, 'lng': point.longitude})
+          .toList(),
     });
     if (route.pois.isNotEmpty) {
       await _syncRoutePOIs(routeId: docRef.id, selectedPois: route.pois);
@@ -559,6 +581,9 @@ class FireStoreService {
       'longitud_inicio': route.initialLongitude,
       'latitud_fin': route.finalLatitude,
       'longitud_fin': route.finalLongitude,
+      'geometry': route.geometry
+          .map((point) => {'lat': point.latitude, 'lng': point.longitude})
+          .toList(),
     });
     await _syncRoutePOIs(routeId: route.id, selectedPois: route.pois);
   }
@@ -978,6 +1003,15 @@ class FireStoreService {
             finalLongitude: (data['longitud_fin'] ?? 0).toDouble(),
             name: data['nombre']?.toString() ?? '',
             pois: [],
+            geometry: data['geometry'] != null
+                ? (data['geometry'] as List)
+                    .map<LatLng>((point) {
+                      final lat = ((point['lat'] ?? 0) as num).toDouble();
+                      final lng = ((point['lng'] ?? 0) as num).toDouble();
+                      return LatLng(lat, lng);
+                    })
+                    .toList()
+                : [],
           ),
         );
       }
