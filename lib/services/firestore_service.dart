@@ -992,6 +992,9 @@ class FireStoreService {
       final querySnapshot = await _routesCollection.get();
       List<MapRoute> routes = [];
       for (var doc in querySnapshot.docs) {
+        if (doc.id == 'sin_asignar') {
+          continue;
+        }
         final data = doc.data();
 
         routes.add(

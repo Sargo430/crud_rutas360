@@ -212,7 +212,7 @@ class _BaseState extends State<Base> {
                 items: [
                   SidebarXItem(
                     icon: Icons.home,
-                    label: 'Home',
+                    label: 'Inicio',
                     onTap: () => onItemSelected(0),
                   ),
                   SidebarXItem(

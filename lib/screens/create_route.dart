@@ -278,6 +278,31 @@ class _CreateRouteState extends State<CreateRoute> {
     }
   }
 
+  void _handleMapTap(LatLng tappedPoint) {
+    final latText = tappedPoint.latitude.toStringAsFixed(6);
+    final lonText = tappedPoint.longitude.toStringAsFixed(6);
+
+    final shouldSetInitial =
+        _initialLatLng == null || (_initialLatLng != null && _finalLatLng != null);
+
+    if (shouldSetInitial) {
+      if (_finalLatController.text.isNotEmpty ||
+          _finalLongController.text.isNotEmpty) {
+        _finalLatController.text = '';
+        _finalLongController.text = '';
+      }
+      _initialLatController.text = latText;
+      _initialLongController.text = lonText;
+      setState(() {
+        _routePoints = [];
+        _routeError = null;
+      });
+    } else {
+      _finalLatController.text = latText;
+      _finalLongController.text = lonText;
+    }
+  }
+
   // ---------------- UI ----------------
 
   @override
@@ -584,7 +609,7 @@ class _CreateRouteState extends State<CreateRoute> {
         ),
         const SizedBox(height: 4),
         const Text(
-          "El mapa mostrará la ruta al ingresar las coordenadas",
+          "El mapa mostrara la ruta al ingresar las coordenadas o seleccionando los puntos en el mapa",
           style: TextStyle(color: Colors.black54),
         ),
         const SizedBox(height: 16),
@@ -599,6 +624,9 @@ class _CreateRouteState extends State<CreateRoute> {
                 initialZoom: 13,
                 minZoom: 4,
                 maxZoom: 18,
+                onTap: (tapPosition, latLng) {
+                  _handleMapTap(latLng);
+                },
                 // Evito APIs que varían entre versiones. Si usas flutter_map >=6
                 // y quieres restringir cámara, puedes reactivar CameraConstraint.
                 onMapReady: () {
